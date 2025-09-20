@@ -1,5 +1,5 @@
 <template>
-    <div>a</div>
+    <div>vehicle homapge</div>
 </template>
 
 <script></script>

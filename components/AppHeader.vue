@@ -13,9 +13,11 @@
             <div class="flex items-center justify-center text-white space-x-2 relative">
                 <!-- Dashboard -->
                 <NuxtLink
-                    to="/"
+                    to="/dashboard"
                     class="relative group flex flex-col items-center justify-center h-12 w-20 cursor-pointer transition-colors duration-300 rounded-md"
-                    :class="isActive('/') ? 'bg-orange-500 text-white' : 'hover:bg-orange-500'"
+                    :class="
+                        isActive('/dashboard') ? 'bg-orange-500 text-white' : 'hover:bg-orange-500'
+                    "
                 >
                     <img
                         src="/assets/img/icon-svg/dashboard.svg"
@@ -23,12 +25,32 @@
                         alt="dashboard"
                     />
                     <p class="text-sm">Dashboard</p>
+
+                    <!-- Sub Navigation -->
+                    <div
+                        class="absolute top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-neutral-900 rounded-lg shadow-lg border border-white/10 backdrop-blur-md w-44 pointer-events-none group-hover:pointer-events-auto"
+                    >
+                        <ul class="text-sm text-white">
+                            <li>
+                                <NuxtLink to="/dashboard" class="block px-4 py-2 hover:bg-white/10"
+                                    >Load & Unload</NuxtLink
+                                >
+                            </li>
+                            <li>
+                                <NuxtLink
+                                    to="/dashboard/fuel"
+                                    class="block px-4 py-2 hover:bg-white/10"
+                                    >Fuel</NuxtLink
+                                >
+                            </li>
+                        </ul>
+                    </div>
                 </NuxtLink>
 
                 <!-- Vehicle (with submenu) -->
                 <NuxtLink
                     to="/vehicle"
-                    class="relative group flex flex-col items-center justify-center h-10 cursor-pointer transition-colors duration-300 rounded-md px-2"
+                    class="relative group flex flex-col items-center justify-center h-12 w-20 cursor-pointer transition-colors duration-300 rounded-md"
                     :class="
                         isActive('/vehicle') ? 'bg-orange-500 text-white' : 'hover:bg-orange-500'
                     "
@@ -66,7 +88,7 @@
 
                 <!-- Driver (with submenu) -->
                 <div
-                    class="relative group flex flex-col items-center justify-center h-10 cursor-pointer hover:bg-orange-500 transition-colors duration-300 rounded-md px-2"
+                    class="relative group flex flex-col items-center justify-center h-12 w-20 cursor-pointer transition-colors duration-300 rounded-md"
                 >
                     <img src="/assets/img/icon-svg/driver.svg" class="w-[30px] h-5" alt="driver" />
                     <p class="text-sm">Driver</p>
