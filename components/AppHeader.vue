@@ -1,11 +1,17 @@
 <template>
     <header ref="headerRef" class="bg-black sticky top-0 z-50">
         <!-- TOP BAR -->
-        <div class="flex items-center justify-between p-2">
+        <div class="flex items-center md:justify-normal justify-between p-2">
+            <!-- Navbar -->
+
             <!-- Brand -->
             <NuxtLink to="/" class="flex items-center space-x-2 text-white">
-                <img src="/assets/img/icon-png/mitra-white.png" class="w-8" alt="vetra icon" />
-                <p class="text-xl">Vetra</p>
+                <img
+                    src="/assets/img/icon-png/mitra-white.png"
+                    class="md:w-8 w-6"
+                    alt="vetra icon"
+                />
+                <p class="hidden md:flex text-xl">Vetra</p>
             </NuxtLink>
 
             <!-- Hamburger (mobile) -->
@@ -99,14 +105,6 @@
                                     class="block px-4 py-2 hover:bg-white/10"
                                 >
                                     Add Vehicle
-                                </NuxtLink>
-                            </li>
-                            <li>
-                                <NuxtLink
-                                    to="/vehicle/maintenance"
-                                    class="block px-4 py-2 hover:bg-white/10"
-                                >
-                                    Maintenance
                                 </NuxtLink>
                             </li>
                         </ul>
@@ -252,15 +250,6 @@
                                         @click="handleSubItemClick()"
                                     >
                                         Add Vehicle
-                                    </NuxtLink>
-                                </li>
-                                <li>
-                                    <NuxtLink
-                                        to="/vehicle/maintenance"
-                                        class="block px-12 py-2 hover:bg-white/10"
-                                        @click="handleSubItemClick()"
-                                    >
-                                        Maintenance
                                     </NuxtLink>
                                 </li>
                             </ul>
