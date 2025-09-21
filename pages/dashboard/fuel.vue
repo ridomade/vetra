@@ -23,12 +23,15 @@
                 <select
                     v-model="sortBy"
                     class="px-3 py-1.5 text-sm rounded-xl border bg-white shadow-sm"
+                    title="Sort by column"
                 >
                     <option value="name">Sort: Name</option>
+                    <option value="driver">Sort: Driver</option>
                     <option value="capacity">Sort: Capacity</option>
                     <option value="filled">Sort: Filled</option>
                     <option value="remaining">Sort: Remaining</option>
                     <option value="util">Sort: Utilization</option>
+                    <option value="remainingPct">Sort: % Remaining</option>
                 </select>
             </div>
         </div>
@@ -104,12 +107,136 @@
                 <table class="min-w-full text-sm">
                     <thead>
                         <tr class="text-left border-b bg-white">
-                            <th class="py-2 px-4">Vehicle</th>
-                            <th class="py-2 px-4">Capacity (L)</th>
-                            <th class="py-2 px-4">Filled (L)</th>
-                            <th class="py-2 px-4">% Filled</th>
-                            <th class="py-2 px-4">Remaining (L)</th>
-                            <th class="py-2 px-4">% Remaining</th>
+                            <th
+                                class="py-2 px-4"
+                                :aria-sort="
+                                    sortBy === 'name'
+                                        ? sortDir === 'asc'
+                                            ? 'ascending'
+                                            : 'descending'
+                                        : 'none'
+                                "
+                            >
+                                <button
+                                    @click="setSort('name')"
+                                    :class="thClass('name')"
+                                    class="inline-flex items-center gap-1"
+                                >
+                                    Vehicle <span class="text-[10px]">{{ sortIcon("name") }}</span>
+                                </button>
+                            </th>
+                            <th
+                                class="py-2 px-4"
+                                :aria-sort="
+                                    sortBy === 'driver'
+                                        ? sortDir === 'asc'
+                                            ? 'ascending'
+                                            : 'descending'
+                                        : 'none'
+                                "
+                            >
+                                <button
+                                    @click="setSort('driver')"
+                                    :class="thClass('driver')"
+                                    class="inline-flex items-center gap-1"
+                                >
+                                    Driver <span class="text-[10px]">{{ sortIcon("driver") }}</span>
+                                </button>
+                            </th>
+                            <th
+                                class="py-2 px-4"
+                                :aria-sort="
+                                    sortBy === 'capacity'
+                                        ? sortDir === 'asc'
+                                            ? 'ascending'
+                                            : 'descending'
+                                        : 'none'
+                                "
+                            >
+                                <button
+                                    @click="setSort('capacity')"
+                                    :class="thClass('capacity')"
+                                    class="inline-flex items-center gap-1"
+                                >
+                                    Capacity (L)
+                                    <span class="text-[10px]">{{ sortIcon("capacity") }}</span>
+                                </button>
+                            </th>
+                            <th
+                                class="py-2 px-4"
+                                :aria-sort="
+                                    sortBy === 'filled'
+                                        ? sortDir === 'asc'
+                                            ? 'ascending'
+                                            : 'descending'
+                                        : 'none'
+                                "
+                            >
+                                <button
+                                    @click="setSort('filled')"
+                                    :class="thClass('filled')"
+                                    class="inline-flex items-center gap-1"
+                                >
+                                    Filled (L)
+                                    <span class="text-[10px]">{{ sortIcon("filled") }}</span>
+                                </button>
+                            </th>
+                            <th
+                                class="py-2 px-4"
+                                :aria-sort="
+                                    sortBy === 'util'
+                                        ? sortDir === 'asc'
+                                            ? 'ascending'
+                                            : 'descending'
+                                        : 'none'
+                                "
+                            >
+                                <button
+                                    @click="setSort('util')"
+                                    :class="thClass('util')"
+                                    class="inline-flex items-center gap-1"
+                                >
+                                    % Filled <span class="text-[10px]">{{ sortIcon("util") }}</span>
+                                </button>
+                            </th>
+                            <th
+                                class="py-2 px-4"
+                                :aria-sort="
+                                    sortBy === 'remaining'
+                                        ? sortDir === 'asc'
+                                            ? 'ascending'
+                                            : 'descending'
+                                        : 'none'
+                                "
+                            >
+                                <button
+                                    @click="setSort('remaining')"
+                                    :class="thClass('remaining')"
+                                    class="inline-flex items-center gap-1"
+                                >
+                                    Remaining (L)
+                                    <span class="text-[10px]">{{ sortIcon("remaining") }}</span>
+                                </button>
+                            </th>
+                            <th
+                                class="py-2 px-4"
+                                :aria-sort="
+                                    sortBy === 'remainingPct'
+                                        ? sortDir === 'asc'
+                                            ? 'ascending'
+                                            : 'descending'
+                                        : 'none'
+                                "
+                            >
+                                <button
+                                    @click="setSort('remainingPct')"
+                                    :class="thClass('remainingPct')"
+                                    class="inline-flex items-center gap-1"
+                                >
+                                    % Remaining
+                                    <span class="text-[10px]">{{ sortIcon("remainingPct") }}</span>
+                                </button>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -119,6 +246,7 @@
                             class="border-b last:border-0 hover:bg-neutral-50/70 transition"
                         >
                             <td class="py-2 px-4 font-medium">{{ v.name }}</td>
+                            <td class="py-2 px-4">{{ v.driver }}</td>
                             <td class="py-2 px-4">{{ v.capacity }}</td>
                             <td class="py-2 px-4">{{ v.filled }}</td>
                             <td class="py-2 px-4">
@@ -152,7 +280,7 @@
                             <td class="py-2 px-4">{{ v.remainingPct.toFixed(1) }}%</td>
                         </tr>
                         <tr v-if="vehiclesSorted.length === 0">
-                            <td colspan="6" class="py-6 text-center text-neutral-500">No data.</td>
+                            <td colspan="7" class="py-6 text-center text-neutral-500">No data.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -180,6 +308,26 @@ const vehicles = ref([
 // Controls
 const showPercent = ref(false);
 const sortBy = ref("name");
+const sortDir = ref("asc"); // 'asc' | 'desc'
+
+// Helper untuk header class & icon
+const thClass = (key) =>
+    (sortBy.value === key ? "text-neutral-900" : "text-neutral-500 hover:text-neutral-900") +
+    " transition-colors";
+const sortIcon = (key) => (sortBy.value !== key ? "" : sortDir.value === "asc" ? "▲" : "▼");
+const setSort = (key) => {
+    if (sortBy.value === key) {
+        sortDir.value = sortDir.value === "asc" ? "desc" : "asc";
+    } else {
+        sortBy.value = key;
+        // default arah awal: asc untuk teks, desc untuk angka
+        sortDir.value = ["name", "driver"].includes(key) ? "asc" : "desc";
+    }
+};
+// Sinkronisasi arah default saat user ganti dari dropdown
+watch(sortBy, (key) => {
+    sortDir.value = ["name", "driver"].includes(key) ? "asc" : "desc";
+});
 
 // Ambil nilai dari data, lalu sanitasi agar tidak melebihi capacity
 const vehiclesComputed = computed(() =>
@@ -200,21 +348,44 @@ const vehiclesComputed = computed(() =>
     })
 );
 
-// Sorting
+// Sorting util
+const valueByKey = (row, key) => {
+    switch (key) {
+        case "name":
+            return row.name ?? "";
+        case "driver":
+            return row.driver ?? "";
+        case "capacity":
+            return row.capacity ?? 0;
+        case "filled":
+            return row.filled ?? 0;
+        case "remaining":
+            return row.remaining ?? 0;
+        case "util":
+            return row.util ?? 0;
+        case "remainingPct":
+            return row.remainingPct ?? 0;
+        default:
+            return row.name ?? "";
+    }
+};
+
 const vehiclesSorted = computed(() => {
     const arr = [...vehiclesComputed.value];
-    switch (sortBy.value) {
-        case "capacity":
-            return arr.sort((a, b) => b.capacity - a.capacity);
-        case "filled":
-            return arr.sort((a, b) => b.filled - a.filled);
-        case "remaining":
-            return arr.sort((a, b) => b.remaining - a.remaining);
-        case "util":
-            return arr.sort((a, b) => b.util - a.util);
-        default:
-            return arr.sort((a, b) => a.name.localeCompare(b.name));
-    }
+    const key = sortBy.value;
+    const dir = sortDir.value === "asc" ? 1 : -1;
+    return arr.sort((a, b) => {
+        const av = valueByKey(a, key);
+        const bv = valueByKey(b, key);
+        if (typeof av === "string" || typeof bv === "string") {
+            const cmp = String(av).toLowerCase().localeCompare(String(bv).toLowerCase());
+            if (cmp !== 0) return cmp * dir;
+            return String(a.name).localeCompare(String(b.name)) * dir;
+        }
+        const numCmp = av - bv;
+        if (numCmp !== 0) return numCmp * dir;
+        return String(a.name).localeCompare(String(b.name)) * dir;
+    });
 });
 
 // Stats
@@ -238,7 +409,7 @@ function buildChart() {
     const filledData = vehiclesSorted.value.map((v) => v.filled);
     const remainingData = vehiclesSorted.value.map((v) => v.remaining);
 
-    // Warna remaining berdasarkan persentase sisa
+    // Warna remaining berdasarkan nilai sisa
     const remainingColors = vehiclesSorted.value.map((v) => {
         if (v.remaining <= 20) return "rgba(239, 68, 68, 0.85)"; // merah
         if (v.remaining <= 40) return "rgba(59, 130, 246, 0.7)"; // biru
@@ -255,7 +426,7 @@ function buildChart() {
                 {
                     label: "Remaining (L)",
                     data: remainingData,
-                    backgroundColor: remainingColors, // kondisi warna per-bar
+                    backgroundColor: remainingColors,
                     borderWidth: 0,
                     stack: "fuel",
                     borderRadius: 0,
@@ -327,7 +498,7 @@ function renewChart() {
 }
 
 onMounted(() => buildChart());
-watch([sortBy, vehiclesComputed], () => renewChart(), { deep: true });
+watch([sortBy, sortDir, vehiclesComputed], () => renewChart(), { deep: true });
 onBeforeUnmount(() => {
     if (chartInstance) chartInstance.destroy();
 });
