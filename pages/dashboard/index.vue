@@ -36,7 +36,7 @@
         </div>
 
         <!-- Stats Cards -->
-        <div class="grid gap-3 md:gap-4 grid-cols-2 md:grid-cols-4">
+        <div class="grid gap-3 md:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
             <div class="bg-white/80 backdrop-blur rounded-2xl border shadow-sm p-4">
                 <p class="text-xs text-neutral-500">Total Vehicle</p>
                 <p class="text-xl font-semibold">{{ totalVehicle }}</p>
@@ -79,23 +79,82 @@
             </div>
 
             <div class="p-4">
-                <div class="w-full overflow-x-auto">
-                    <div class="min-w-[720px]">
-                        <div class="h-[360px]">
-                            <canvas ref="chartEl"></canvas>
-                        </div>
+                <div class="w-full">
+                    <div class="h-[240px] sm:h-[300px] md:h-[360px]">
+                        <canvas ref="chartEl"></canvas>
                     </div>
                 </div>
                 <p class="mt-2 text-xs text-neutral-500">
-                    *Grafik memperlihatkan jumlah <strong>load</strong> dan
-                    <strong>unload</strong> per kendaraan. Completion % dihitung sebagai
-                    <em>unload ÷ load</em>.
+                    *Grafik menampilkan jumlah <strong>load</strong> dan <strong>unload</strong> per
+                    kendaraan. Completion % dihitung sebagai <em>unload ÷ load</em>.
                 </p>
             </div>
         </div>
 
-        <!-- Table -->
-        <div class="rounded-2xl border shadow-sm bg-white overflow-hidden">
+        <!-- List (Mobile) -->
+        <div class="rounded-2xl border shadow-sm bg-white overflow-hidden md:hidden">
+            <div class="px-4 py-3 border-b bg-neutral-50">
+                <h3 class="font-medium">Ringkasan</h3>
+            </div>
+
+            <ul class="divide-y">
+                <li v-for="v in vehiclesSorted" :key="v.name" class="p-4 space-y-2">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="font-semibold">{{ v.name }}</p>
+                            <p class="text-xs text-neutral-500">Driver: {{ v.driver }}</p>
+                        </div>
+                        <span
+                            class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
+                            :class="
+                                v.completion >= 90
+                                    ? 'bg-green-100 text-green-700'
+                                    : v.completion >= 70
+                                    ? 'bg-amber-100 text-amber-700'
+                                    : 'bg-red-100 text-red-700'
+                            "
+                        >
+                            {{ v.completion.toFixed(1) }}%
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 text-xs">
+                        <div class="rounded-lg border p-2">
+                            <p class="text-neutral-500">Loads</p>
+                            <p class="font-medium">{{ v.loads }}</p>
+                        </div>
+                        <div class="rounded-lg border p-2">
+                            <p class="text-neutral-500">Unloads</p>
+                            <p class="font-medium">{{ v.unloads }}</p>
+                        </div>
+                        <div class="rounded-lg border p-2">
+                            <p class="text-neutral-500">Backlog</p>
+                            <p>
+                                <span
+                                    class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
+                                    :class="
+                                        v.backlog >= 5
+                                            ? 'bg-red-100 text-red-700'
+                                            : v.backlog > 0
+                                            ? 'bg-amber-100 text-amber-700'
+                                            : 'bg-green-100 text-green-700'
+                                    "
+                                >
+                                    {{ v.backlog }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                </li>
+
+                <li v-if="vehiclesSorted.length === 0" class="p-6 text-center text-neutral-500">
+                    No data.
+                </li>
+            </ul>
+        </div>
+
+        <!-- Table (Desktop) -->
+        <div class="rounded-2xl border shadow-sm bg-white overflow-hidden hidden md:block">
             <div class="px-4 py-3 border-b bg-neutral-50">
                 <h3 class="font-medium">Ringkasan</h3>
             </div>
@@ -127,9 +186,8 @@
                                     :class="thClass('loads')"
                                     class="inline-flex items-center gap-1"
                                 >
-                                    Loads (Kg)<span class="text-[10px]">{{
-                                        sortIcon("loads")
-                                    }}</span>
+                                    Loads (Kg)
+                                    <span class="text-[10px]">{{ sortIcon("loads") }}</span>
                                 </button>
                             </th>
                             <th class="py-2 px-4">
@@ -364,11 +422,10 @@ function buildChart() {
                     },
                 },
             },
-
             scales: {
                 x: {
                     grid: { display: false },
-                    ticks: { maxRotation: 0, autoSkip: false },
+                    ticks: { maxRotation: 0, autoSkip: true },
                 },
                 y: {
                     beginAtZero: true,

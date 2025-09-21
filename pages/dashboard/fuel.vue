@@ -61,23 +61,33 @@
             <div class="flex items-center justify-between px-4 py-3 border-b bg-neutral-50">
                 <div class="flex items-center gap-2">
                     <span class="inline-flex h-2 w-2 rounded-full bg-neutral-400"></span>
-                    <h2 class="font-medium">Fuel Filled vs Remaining per Vehicle</h2>
+                    <h2 class="font-medium md:text-lg text-sm">
+                        Fuel Filled vs Remaining per Vehicle
+                    </h2>
                 </div>
-                <div class="flex items-center gap-3 text-xs">
+                <div class="flex items-center gap-3 md:text-xs text-[10px]">
                     <span class="inline-flex items-center gap-1">
-                        <span class="inline-block h-2.5 w-2.5 rounded bg-red-500/70"></span>
+                        <span
+                            class="inline-block md:h-2.5 md:w-2.5 h-1 w-1 rounded bg-red-500/70"
+                        ></span>
                         Remaining <= 20 L
                     </span>
                     <span class="inline-flex items-center gap-1">
-                        <span class="inline-block h-2.5 w-2.5 rounded bg-blue-500/70"></span>
+                        <span
+                            class="inline-block md:h-2.5 md:w-2.5 h-1 w-1 rounded bg-blue-500/70"
+                        ></span>
                         Remaining <= 40 L
                     </span>
                     <span class="inline-flex items-center gap-1">
-                        <span class="inline-block h-2.5 w-2.5 rounded bg-green-500/70"></span>
+                        <span
+                            class="inline-block md:h-2.5 md:w-2.5 h-1 w-1 rounded bg-green-500/70"
+                        ></span>
                         Remaining > 40 L
                     </span>
                     <span class="inline-flex items-center gap-1">
-                        <span class="inline-block h-2.5 w-2.5 rounded bg-amber-400/80"></span>
+                        <span
+                            class="inline-block md:h-2.5 md:w-2.5 h-1 w-1 rounded bg-amber-400/80"
+                        ></span>
                         Filled
                     </span>
                 </div>
@@ -85,8 +95,8 @@
 
             <div class="p-4">
                 <div class="w-full overflow-x-auto">
-                    <div class="min-w-[720px]">
-                        <div class="h-[360px]">
+                    <div class="min-w-0 md:min-w-[720px]">
+                        <div class="h-[240px] sm:h-[300px] md:h-[360px]">
                             <canvas ref="chartEl"></canvas>
                         </div>
                     </div>
@@ -98,8 +108,8 @@
             </div>
         </div>
 
-        <!-- Table -->
-        <div class="rounded-2xl border shadow-sm bg-white overflow-hidden">
+        <!-- Table (desktop & tablet) -->
+        <div class="rounded-2xl border shadow-sm bg-white overflow-hidden hidden md:block">
             <div class="px-4 py-3 border-b bg-neutral-50">
                 <h3 class="font-medium">Ringkasan</h3>
             </div>
@@ -286,6 +296,64 @@
                 </table>
             </div>
         </div>
+
+        <!-- Cards (mobile) -->
+        <div class="rounded-2xl border shadow-sm bg-white overflow-hidden md:hidden">
+            <div class="px-4 py-3 border-b bg-neutral-50">
+                <h3 class="font-medium">Ringkasan</h3>
+            </div>
+            <div class="divide-y">
+                <div v-for="v in vehiclesSorted" :key="v.name" class="p-4 flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                        <div class="font-medium">{{ v.name }}</div>
+                        <div class="text-xs text-neutral-500">{{ v.driver }}</div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                            <div class="text-neutral-500">Capacity</div>
+                            <div class="font-medium">{{ v.capacity }} L</div>
+                        </div>
+                        <div>
+                            <div class="text-neutral-500">Filled</div>
+                            <div class="font-medium">{{ v.filled }} L</div>
+                        </div>
+                        <div>
+                            <div class="text-neutral-500">% Filled</div>
+                            <span
+                                class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
+                                :class="
+                                    v.util >= 75
+                                        ? 'bg-green-100 text-green-700'
+                                        : v.util >= 50
+                                        ? 'bg-amber-100 text-amber-700'
+                                        : 'bg-red-100 text-red-700'
+                                "
+                            >
+                                {{ v.util.toFixed(1) }}%
+                            </span>
+                        </div>
+                        <div>
+                            <div class="text-neutral-500">Remaining</div>
+                            <span
+                                class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
+                                :class="
+                                    v.remaining <= 20
+                                        ? 'bg-red-100 text-red-700'
+                                        : v.remaining <= 40
+                                        ? 'bg-amber-100 text-amber-700'
+                                        : 'bg-green-100 text-green-700'
+                                "
+                            >
+                                {{ v.remaining }} ({{ v.remainingPct.toFixed(1) }}%)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div v-if="vehiclesSorted.length === 0" class="p-6 text-center text-neutral-500">
+                    No data.
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -401,6 +469,7 @@ const avgUtil = computed(() => {
 // Chart
 const chartEl = ref(null);
 let chartInstance = null;
+let resizeHandler = null;
 
 function buildChart() {
     const ctx = chartEl.value.getContext("2d");
@@ -471,7 +540,7 @@ function buildChart() {
             scales: {
                 x: {
                     stacked: true,
-                    ticks: { maxRotation: 0, autoSkip: false },
+                    ticks: { maxRotation: 0, autoSkip: true },
                     grid: { display: false },
                 },
                 y: {
@@ -497,9 +566,14 @@ function renewChart() {
     buildChart();
 }
 
-onMounted(() => buildChart());
+onMounted(() => {
+    buildChart();
+    resizeHandler = () => chartInstance?.resize();
+    window.addEventListener("resize", resizeHandler, { passive: true });
+});
 watch([sortBy, sortDir, vehiclesComputed], () => renewChart(), { deep: true });
 onBeforeUnmount(() => {
     if (chartInstance) chartInstance.destroy();
+    if (resizeHandler) window.removeEventListener("resize", resizeHandler);
 });
 </script>
