@@ -109,7 +109,7 @@
         </div>
 
         <!-- Table (desktop & tablet) -->
-        <div class="rounded-2xl border shadow-sm bg-white overflow-hidden hidden md:block">
+        <div class="rounded-2xl border shadow-sm bg-white overflow-hidden">
             <div class="px-4 py-3 border-b bg-neutral-50">
                 <h3 class="font-medium">Ringkasan</h3>
             </div>
@@ -294,64 +294,6 @@
                         </tr>
                     </tbody>
                 </table>
-            </div>
-        </div>
-
-        <!-- Cards (mobile) -->
-        <div class="rounded-2xl border shadow-sm bg-white overflow-hidden md:hidden">
-            <div class="px-4 py-3 border-b bg-neutral-50">
-                <h3 class="font-medium">Ringkasan</h3>
-            </div>
-            <div class="divide-y">
-                <div v-for="v in vehiclesSorted" :key="v.name" class="p-4 flex flex-col gap-2">
-                    <div class="flex items-center justify-between">
-                        <div class="font-medium">{{ v.name }}</div>
-                        <div class="text-xs text-neutral-500">{{ v.driver }}</div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 text-sm">
-                        <div>
-                            <div class="text-neutral-500">Capacity</div>
-                            <div class="font-medium">{{ v.capacity }} L</div>
-                        </div>
-                        <div>
-                            <div class="text-neutral-500">Filled</div>
-                            <div class="font-medium">{{ v.filled }} L</div>
-                        </div>
-                        <div>
-                            <div class="text-neutral-500">% Filled</div>
-                            <span
-                                class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
-                                :class="
-                                    v.util >= 75
-                                        ? 'bg-green-100 text-green-700'
-                                        : v.util >= 50
-                                        ? 'bg-amber-100 text-amber-700'
-                                        : 'bg-red-100 text-red-700'
-                                "
-                            >
-                                {{ v.util.toFixed(1) }}%
-                            </span>
-                        </div>
-                        <div>
-                            <div class="text-neutral-500">Remaining</div>
-                            <span
-                                class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
-                                :class="
-                                    v.remaining <= 20
-                                        ? 'bg-red-100 text-red-700'
-                                        : v.remaining <= 40
-                                        ? 'bg-amber-100 text-amber-700'
-                                        : 'bg-green-100 text-green-700'
-                                "
-                            >
-                                {{ v.remaining }} ({{ v.remainingPct.toFixed(1) }}%)
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                <div v-if="vehiclesSorted.length === 0" class="p-6 text-center text-neutral-500">
-                    No data.
-                </div>
             </div>
         </div>
     </div>
