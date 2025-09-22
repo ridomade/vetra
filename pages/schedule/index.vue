@@ -1,4 +1,4 @@
-<!-- File: pages/drivers.vue (Nuxt 3) -->
+<!-- File: pages/schedule.vue (Nuxt 3) -->
 <template>
     <div class="min-h-[100dvh] bg-neutral-50 p-4 md:p-6">
         <!-- Header -->
@@ -7,9 +7,9 @@
                 <nav class="text-sm text-neutral-500 mb-1">
                     <NuxtLink to="/" class="hover:underline">Dashboard</NuxtLink>
                     <span class="mx-1">/</span>
-                    <span class="text-neutral-900">Driver Info</span>
+                    <span class="text-neutral-900">Schedule</span>
                 </nav>
-                <h1 class="text-2xl font-semibold tracking-tight">Driver Info</h1>
+                <h1 class="text-2xl font-semibold tracking-tight">Schedule</h1>
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
@@ -17,17 +17,18 @@
                     v-model="search"
                     type="text"
                     placeholder="Search…"
-                    class="input h-9 w-[220px]"
+                    class="input h-9 w-[200px]"
                 />
-                <button class="btn-primary h-9" @click="scrollToForm">Add Driver</button>
+                <button class="btn-primary h-9" @click="scrollToForm">Add Trip</button>
             </div>
         </div>
 
+        <!-- Content -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
             <!-- Table -->
-            <section class="lg:col-span-8 xl:col-span-8 card" aria-label="Driver list">
+            <section class="lg:col-span-7 xl:col-span-8 card" aria-label="Schedule list">
                 <div class="flex items-center justify-between p-3 border-b bg-neutral-50/60">
-                    <h2 class="font-medium">Drivers</h2>
+                    <h2 class="font-medium">Trips</h2>
                     <span class="text-xs text-neutral-500"
                         >{{ filteredRows.length }} record(s)</span
                     >
@@ -35,36 +36,27 @@
 
                 <div class="overflow-x-auto">
                     <table class="min-w-full w-full text-sm">
-                        <thead class="bg-neutral-50 text-neutral-700">
+                        <thead class="bg-neutral-50 text-left text-neutral-700">
                             <tr>
                                 <th class="th w-16">S.No</th>
-                                <th class="th cursor-pointer" @click="toggleSort('name')">
-                                    Name
-                                    <span class="sort" v-if="sort.key === 'name'">{{
-                                        sort.dir === "asc" ? "▲" : "▼"
-                                    }}</span>
+                                <th class="th cursor-pointer" @click="toggleSort('customer')">
+                                    <span class="th-btn"
+                                        >Customer
+                                        <span class="sort" v-if="sort.key === 'customer'">{{
+                                            sort.dir === "asc" ? "▲" : "▼"
+                                        }}</span></span
+                                    >
                                 </th>
-                                <th class="th">Mobile</th>
-                                <th class="th">License No</th>
-                                <th class="th cursor-pointer" @click="toggleSort('licenseExpDate')">
-                                    License Exp Date
-                                    <span class="sort" v-if="sort.key === 'licenseExpDate'">{{
-                                        sort.dir === "asc" ? "▲" : "▼"
-                                    }}</span>
-                                </th>
-                                <th class="th cursor-pointer" @click="toggleSort('dateOfJoining')">
-                                    Date of Joining
-                                    <span class="sort" v-if="sort.key === 'dateOfJoining'">{{
-                                        sort.dir === "asc" ? "▲" : "▼"
-                                    }}</span>
-                                </th>
-                                <th class="th">Is Active</th>
+                                <th class="th">Vehicle</th>
+                                <th class="th">Type</th>
+                                <th class="th">Driver</th>
+                                <th class="th">Trip Status</th>
                                 <th class="th text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-if="!filteredRows.length">
-                                <td class="td text-center text-neutral-500" colspan="8">
+                                <td class="td text-center text-neutral-500" colspan="7">
                                     No data available in table
                                 </td>
                             </tr>
@@ -74,11 +66,10 @@
                                 class="hover:bg-neutral-50"
                             >
                                 <td class="td">{{ (page - 1) * pageSize + i + 1 }}</td>
-                                <td class="td">{{ row.name }}</td>
-                                <td class="td">{{ row.mobile }}</td>
-                                <td class="td">{{ row.licenseNo }}</td>
-                                <td class="td">{{ row.licenseExpDate }}</td>
-                                <td class="td">{{ row.dateOfJoining }}</td>
+                                <td class="td">{{ row.customer }}</td>
+                                <td class="td">{{ row.vehicle }}</td>
+                                <td class="td">{{ row.type }}</td>
+                                <td class="td">{{ row.driver }}</td>
                                 <td class="td">
                                     <span :class="statusPill(row.status)">{{ row.status }}</span>
                                 </td>
@@ -86,11 +77,6 @@
                                     <div class="inline-flex gap-1">
                                         <button class="btn-subtle" @click="editRow(row)">
                                             Edit
-                                        </button>
-                                        <button class="btn-subtle" @click="toggleStatus(row)">
-                                            {{
-                                                row.status === "Active" ? "Deactivate" : "Activate"
-                                            }}
                                         </button>
                                         <button class="btn-danger" @click="removeRow(row.id)">
                                             Delete
@@ -126,11 +112,11 @@
             <!-- Form -->
             <section
                 ref="formRef"
-                class="lg:col-span-4 xl:col-span-4 card"
-                aria-label="Add / Edit Driver"
+                class="lg:col-span-5 xl:col-span-4 card"
+                aria-label="Add / Edit Trip"
             >
                 <div class="p-3 border-b bg-neutral-50/60 flex items-center justify-between">
-                    <h2 class="font-medium">{{ editingId ? "Edit Driver" : "Add Driver" }}</h2>
+                    <h2 class="font-medium">{{ editingId ? "Edit Schedule" : "Add Schedule" }}</h2>
                     <button v-if="editingId" class="btn-subtle" @click="resetForm">Cancel</button>
                 </div>
 
@@ -138,122 +124,142 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="lbl"
-                                >Driver Name<span class="text-red-600">*</span></label
+                                >Customer Name<span class="text-red-600">*</span></label
                             >
-                            <input
-                                v-model.trim="form.name"
-                                type="text"
-                                class="input"
-                                placeholder="Driver Name"
-                            />
-                            <p v-if="errors.name" class="req">{{ errors.name }}</p>
+                            <select v-model="form.customer" class="input">
+                                <option value="" disabled>Select Customer</option>
+                                <option v-for="c in customers" :key="c.email" :value="c.name">
+                                    {{ c.name }}
+                                </option>
+                            </select>
+                            <p v-if="errors.customer" class="req">{{ errors.customer }}</p>
                         </div>
 
                         <div>
-                            <label class="lbl">Mobile<span class="text-red-600">*</span></label>
-                            <input
-                                v-model.trim="form.mobile"
-                                type="tel"
-                                class="input"
-                                placeholder="Mobile"
-                            />
-                            <p v-if="errors.mobile" class="req">{{ errors.mobile }}</p>
+                            <label class="lbl">Vehicle<span class="text-red-600">*</span></label>
+                            <select v-model="form.vehicle" class="input">
+                                <option value="" disabled>Select Vehicle</option>
+                                <option v-for="v in vehicles" :key="v" :value="v">{{ v }}</option>
+                            </select>
+                            <p v-if="errors.vehicle" class="req">{{ errors.vehicle }}</p>
                         </div>
 
                         <div>
-                            <label class="lbl">Age<span class="text-red-600">*</span></label>
-                            <input
-                                v-model.number="form.age"
-                                type="number"
-                                min="18"
-                                class="input"
-                                placeholder="Age"
-                            />
-                            <p v-if="errors.age" class="req">{{ errors.age }}</p>
+                            <label class="lbl">Driver<span class="text-red-600">*</span></label>
+                            <select v-model="form.driver" class="input">
+                                <option value="" disabled>Select Driver</option>
+                                <option v-for="d in drivers" :key="d" :value="d">{{ d }}</option>
+                            </select>
+                            <p v-if="errors.driver" class="req">{{ errors.driver }}</p>
                         </div>
 
                         <div>
-                            <label class="lbl">License No<span class="text-red-600">*</span></label>
-                            <input
-                                v-model.trim="form.licenseNo"
-                                type="text"
-                                class="input"
-                                placeholder="License No"
-                            />
-                            <p v-if="errors.licenseNo" class="req">{{ errors.licenseNo }}</p>
+                            <label class="lbl">Trip Type<span class="text-red-600">*</span></label>
+                            <select v-model="form.type" class="input">
+                                <option value="" disabled>Select Trip Type</option>
+                                <option v-for="t in tripTypes" :key="t" :value="t">{{ t }}</option>
+                            </select>
+                            <p v-if="errors.type" class="req">{{ errors.type }}</p>
                         </div>
 
                         <div>
                             <label class="lbl"
-                                >License Expiry Date<span class="text-red-600">*</span></label
+                                >Trip Start Location<span class="text-red-600">*</span></label
                             >
-                            <input v-model="form.licenseExpDate" type="date" class="input" />
-                            <p v-if="errors.licenseExpDate" class="req">
-                                {{ errors.licenseExpDate }}
+                            <input
+                                v-model="form.startLocation"
+                                type="text"
+                                class="input"
+                                placeholder="Trip Start Location"
+                            />
+                            <p v-if="errors.startLocation" class="req">
+                                {{ errors.startLocation }}
                             </p>
                         </div>
 
                         <div>
                             <label class="lbl"
-                                >Total Experience (years)<span class="text-red-600">*</span></label
+                                >Trip End Location<span class="text-red-600">*</span></label
                             >
                             <input
-                                v-model.number="form.experience"
+                                v-model="form.endLocation"
+                                type="text"
+                                class="input"
+                                placeholder="Trip End Location"
+                            />
+                            <p v-if="errors.endLocation" class="req">{{ errors.endLocation }}</p>
+                        </div>
+
+                        <div>
+                            <label class="lbl"
+                                >Approx Total KM<span class="text-red-600">*</span></label
+                            >
+                            <input
+                                v-model.number="form.km"
                                 type="number"
                                 min="0"
-                                step="0.5"
                                 class="input"
-                                placeholder="Total Experience"
+                                placeholder="Approx Total KM"
                             />
-                            <p v-if="errors.experience" class="req">{{ errors.experience }}</p>
+                            <p v-if="errors.km" class="req">{{ errors.km }}</p>
                         </div>
 
                         <div>
                             <label class="lbl"
-                                >Date of Joining<span class="text-red-600">*</span></label
+                                >Trip Start Date<span class="text-red-600">*</span></label
                             >
-                            <input v-model="form.dateOfJoining" type="date" class="input" />
-                            <p v-if="errors.dateOfJoining" class="req">
-                                {{ errors.dateOfJoining }}
-                            </p>
+                            <input v-model="form.startDate" type="date" class="input" />
+                            <p v-if="errors.startDate" class="req">{{ errors.startDate }}</p>
                         </div>
 
                         <div>
-                            <label class="lbl">Reference/Notes</label>
+                            <label class="lbl"
+                                >Trip End Date<span class="text-red-600">*</span></label
+                            >
+                            <input v-model="form.endDate" type="date" class="input" />
+                            <p v-if="errors.endDate" class="req">{{ errors.endDate }}</p>
+                        </div>
+
+                        <div>
+                            <label class="lbl">Tonnage<span class="text-red-600">*</span></label>
                             <input
-                                v-model.trim="form.notes"
+                                v-model="form.tonnage"
                                 type="text"
                                 class="input"
-                                placeholder="Reference or Notes"
+                                placeholder="Tonnage"
                             />
+                            <p v-if="errors.tonnage" class="req">{{ errors.tonnage }}</p>
                         </div>
 
-                        <div class="sm:col-span-2">
-                            <label class="lbl">Address<span class="text-red-600">*</span></label>
-                            <textarea
-                                v-model.trim="form.address"
-                                rows="3"
-                                class="input"
-                                placeholder="Address"
-                            ></textarea>
-                            <p v-if="errors.address" class="req">{{ errors.address }}</p>
-                        </div>
-
-                        <div class="sm:col-span-2">
+                        <div>
                             <label class="lbl"
-                                >Driver Status<span class="text-red-600">*</span></label
+                                >Trip Status<span class="text-red-600">*</span></label
                             >
                             <select v-model="form.status" class="input">
-                                <option value="" disabled>Select Driver Status</option>
+                                <option value="" disabled>Trip Status</option>
                                 <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
                             </select>
                             <p v-if="errors.status" class="req">{{ errors.status }}</p>
                         </div>
                     </div>
 
+                    <div class="space-y-2">
+                        <label class="lbl">Email</label>
+                        <input
+                            v-model="form.email"
+                            type="email"
+                            class="input"
+                            placeholder="customer@email.com"
+                        />
+                        <label class="inline-flex items-center gap-2 text-sm">
+                            <input v-model="form.sendEmail" type="checkbox" class="rounded" />
+                            <span>Send booking confirmation email to customer?</span>
+                        </label>
+                    </div>
+
                     <div class="pt-2">
                         <button type="submit" class="btn-primary">
-                            {{ editingId ? "Update Driver" : "Add Driver" }}
+                            {{ editingId ? "Update Trip" : "Add Trip" }}
                         </button>
                     </div>
                 </form>
@@ -270,45 +276,72 @@ const search = ref("");
 const pageSize = 10;
 const page = ref(1);
 
-interface DriverRow {
+const sort = reactive<{ key: keyof Row | ""; dir: "asc" | "desc" }>({ key: "", dir: "asc" });
+
+interface Row {
     id: number;
-    name: string;
-    mobile: string;
-    age: number;
-    licenseNo: string;
-    licenseExpDate: string;
-    dateOfJoining: string;
-    address: string;
-    experience: number;
-    notes?: string;
-    status: "Active" | "Inactive";
+    customer: string;
+    vehicle: string;
+    type: string;
+    driver: string;
+    status: string;
+    startLocation?: string;
+    endLocation?: string;
+    startDate?: string;
+    endDate?: string;
+    tonnage?: string;
+    km?: number;
 }
 
-const rows = ref<DriverRow[]>([]);
-const statuses = ref<DriverRow["status"][]>(["Active", "Inactive"]);
+const rows = ref<Row[]>([]);
 
-// Sorting
-const sort = reactive<{ key: keyof DriverRow | ""; dir: "asc" | "desc" }>({ key: "", dir: "asc" });
-function toggleSort(key: keyof DriverRow) {
-    if (sort.key === key) sort.dir = sort.dir === "asc" ? "desc" : "asc";
-    else {
-        sort.key = key;
-        sort.dir = "asc";
-    }
-}
+// Dummy master data
+const customers = ref([
+    { name: "PT Nusantara Logistik", email: "contact@nusantara.co.id" },
+    { name: "CV Mitra Abadi", email: "hello@mitraabadi.id" },
+    { name: "PT Sejahtera Bersama", email: "sales@sejahtera.id" },
+]);
+const vehicles = ref(["Truck A", "Truck B", "Truck C"]);
+const drivers = ref(["Budi", "Andi", "Susi", "Rina"]);
+const tripTypes = ref(["Single Trip", "Round Trip", "Shuttle"]);
+const statuses = ref(["Scheduled", "In Progress", "Completed", "Cancelled"]);
 
-// Styling
+// Form state
+const emptyForm = () => ({
+    customer: "",
+    vehicle: "",
+    driver: "",
+    type: "",
+    startLocation: "",
+    endLocation: "",
+    km: undefined as number | undefined,
+    startDate: "",
+    endDate: "",
+    tonnage: "",
+    status: "",
+    email: "",
+    sendEmail: false,
+});
+
+const form = reactive<ReturnType<typeof emptyForm>>(emptyForm());
+const errors = reactive<Record<string, string>>({});
+let editingId: number | null = null;
+
 const statusPill = (s: string) =>
     `inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
-        s === "Active"
+        s === "Completed"
             ? "bg-green-50 text-green-700 border-green-200"
-            : "bg-neutral-100 text-neutral-600 border-neutral-200"
+            : s === "In Progress"
+            ? "bg-blue-50 text-blue-700 border-blue-200"
+            : s === "Cancelled"
+            ? "bg-red-50 text-red-700 border-red-200"
+            : "bg-amber-50 text-amber-700 border-amber-200"
     }`;
 
-// Search + Sort + Pagination
 const filteredRows = computed(() => {
     const q = search.value.toLowerCase().trim();
     const base = [...rows.value];
+    // sort
     if (sort.key) {
         base.sort((a: any, b: any) => {
             const A = (a[sort.key] ?? "").toString().toLowerCase();
@@ -318,48 +351,49 @@ const filteredRows = computed(() => {
     }
     if (!q) return base;
     return base.filter((r) =>
-        [r.name, r.mobile, r.licenseNo, r.status, r.address].some((v) =>
+        [r.customer, r.vehicle, r.type, r.driver, r.status].some((v) =>
             v?.toLowerCase().includes(q)
         )
     );
 });
-const pageRows = computed(() =>
-    filteredRows.value.slice((page.value - 1) * pageSize, (page.value - 1) * pageSize + pageSize)
-);
 
-// Form
-const emptyForm = () => ({
-    name: "",
-    mobile: "",
-    age: undefined as number | undefined,
-    licenseNo: "",
-    licenseExpDate: "",
-    dateOfJoining: "",
-    address: "",
-    experience: undefined as number | undefined,
-    notes: "",
-    status: "" as any,
+const pageRows = computed(() => {
+    const start = (page.value - 1) * pageSize;
+    return filteredRows.value.slice(start, start + pageSize);
 });
-const form = reactive<ReturnType<typeof emptyForm>>(emptyForm());
-const errors = reactive<Record<string, string>>({});
-let editingId: number | null = null;
+
+function toggleSort(key: keyof Row) {
+    if (sort.key === key) {
+        sort.dir = sort.dir === "asc" ? "desc" : "asc";
+    } else {
+        sort.key = key;
+        sort.dir = "asc";
+    }
+}
 
 function validate() {
     Object.keys(errors).forEach((k) => delete errors[k]);
-    const req: (keyof ReturnType<typeof emptyForm>)[] = [
-        "name",
-        "mobile",
-        "age",
-        "licenseNo",
-        "licenseExpDate",
-        "dateOfJoining",
-        "address",
-        "experience",
+    const req = [
+        "customer",
+        "vehicle",
+        "driver",
+        "type",
+        "startLocation",
+        "endLocation",
+        "startDate",
+        "endDate",
+        "tonnage",
         "status",
-    ];
+        "km",
+    ] as const;
     for (const k of req) {
         const val = (form as any)[k];
-        if (val === "" || val === undefined || val === null) errors[k] = "Required";
+        if (val === "" || val === undefined || val === null) {
+            errors[k] = "Required";
+        }
+    }
+    if (form.startDate && form.endDate && form.endDate < form.startDate) {
+        errors.endDate = "End date must be after start date";
     }
     return Object.keys(errors).length === 0;
 }
@@ -367,49 +401,66 @@ function validate() {
 function handleSubmit() {
     if (!validate()) return;
     if (editingId) {
-        const idx = rows.value.findIndex((r) => r.id === editingId);
-        if (idx !== -1) rows.value[idx] = { id: editingId, ...form } as DriverRow;
+        const i = rows.value.findIndex((r) => r.id === editingId);
+        if (i !== -1) rows.value[i] = { id: editingId, ...form } as Row;
     } else {
         const id = rows.value.length ? Math.max(...rows.value.map((r) => r.id)) + 1 : 1;
-        rows.value.unshift({ id, ...form } as DriverRow);
+        rows.value.unshift({ id, ...form } as Row);
     }
     resetForm();
+    // jump to table top on add
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function editRow(r: DriverRow) {
+function editRow(r: Row) {
     Object.assign(form, r);
     editingId = r.id;
     scrollToForm();
 }
-function toggleStatus(r: DriverRow) {
-    r.status = r.status === "Active" ? "Inactive" : "Active";
-}
+
 function removeRow(id: number) {
     rows.value = rows.value.filter((r) => r.id !== id);
 }
+
 function resetForm() {
     Object.assign(form, emptyForm());
     editingId = null;
 }
+
 function scrollToForm() {
     formRef.value?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 onMounted(() => {
+    // seed with a couple of rows
     rows.value = [
         {
             id: 1,
-            name: "Andi Saputra",
-            mobile: "08123123123",
-            age: 34,
-            licenseNo: "B-1234-XYZ",
-            licenseExpDate: "2025-09-20",
-            dateOfJoining: "2024-03-15",
-            address: "Bandung",
-            experience: 8,
-            notes: "Night shift",
-            status: "Active",
+            customer: "PT Nusantara Logistik",
+            vehicle: "Truck A",
+            type: "Single Trip",
+            driver: "Budi",
+            status: "Scheduled",
+            startLocation: "Bandung",
+            endLocation: "Jakarta",
+            startDate: "2025-10-01",
+            endDate: "2025-10-01",
+            tonnage: "10T",
+            km: 150,
+        },
+        {
+            id: 2,
+            customer: "CV Mitra Abadi",
+            vehicle: "Truck B",
+            type: "Round Trip",
+            driver: "Susi",
+            status: "In Progress",
+            startLocation: "Jakarta",
+            endLocation: "Cikarang",
+            startDate: "2025-10-02",
+            endDate: "2025-10-02",
+            tonnage: "8T",
+            km: 80,
         },
     ];
 });
@@ -419,7 +470,7 @@ onMounted(() => {
 /* .card => rounded-2xl border bg-white shadow-sm overflow-hidden */
 .card {
     border-radius: 1rem;
-    border: 1px solid #e5e7eb; /* neutral-200 */
+    border: 1px solid #e5e7eb;
     background-color: #ffffff;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     overflow: hidden;
@@ -431,7 +482,7 @@ onMounted(() => {
     font-size: 0.75rem;
     line-height: 1rem;
     font-weight: 600;
-    color: #404040; /* neutral-700 */
+    color: #404040;
     white-space: nowrap;
 }
 
@@ -445,10 +496,10 @@ onMounted(() => {
 .input {
     width: 100%;
     border-radius: 0.75rem;
-    border: 1px solid #e5e7eb; /* neutral-200 */
+    border: 1px solid #e5e7eb;
     background-color: #ffffff;
     padding: 0.5rem 0.75rem;
-    font-size: 0.875rem; /* text-sm */
+    font-size: 0.875rem;
     line-height: 1.25rem;
     outline: none;
     transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease,
@@ -466,10 +517,10 @@ onMounted(() => {
     justify-content: center;
     border-radius: 0.75rem;
     background-color: #171717; /* neutral-900 */
-    padding: 0.5rem 1rem; /* py-2 px-4 */
-    font-size: 0.875rem; /* text-sm */
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
     line-height: 1.25rem;
-    font-weight: 500; /* font-medium */
+    font-weight: 500;
     color: #ffffff;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     transition: background-color 0.15s ease, opacity 0.15s ease;
@@ -488,11 +539,11 @@ onMounted(() => {
     align-items: center;
     justify-content: center;
     border-radius: 0.75rem;
-    border: 1px solid #e5e7eb; /* neutral-200 */
-    padding: 0.375rem 0.75rem; /* py-1.5 px-3 */
-    font-size: 0.75rem; /* text-xs */
+    border: 1px solid #e5e7eb;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
     line-height: 1rem;
-    font-weight: 500; /* font-medium */
+    font-weight: 500;
     background-color: transparent;
     transition: background-color 0.15s ease, opacity 0.15s ease;
 }
@@ -513,8 +564,8 @@ onMounted(() => {
     border: 1px solid #fecaca; /* red-200 */
     color: #dc2626; /* red-600 */
     background-color: transparent;
-    padding: 0.375rem 0.75rem; /* py-1.5 px-3 */
-    font-size: 0.75rem; /* text-xs */
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
     line-height: 1rem;
     font-weight: 500;
     transition: background-color 0.15s ease;
@@ -526,18 +577,18 @@ onMounted(() => {
 /* .lbl => block text-sm text-neutral-700 mb-1 */
 .lbl {
     display: block;
-    font-size: 0.875rem; /* text-sm */
+    font-size: 0.875rem;
     line-height: 1.25rem;
     color: #404040; /* neutral-700 */
-    margin-bottom: 0.25rem; /* mb-1 */
+    margin-bottom: 0.25rem;
 }
 
 /* .req => text-xs text-red-600 mt-1 */
 .req {
-    font-size: 0.75rem; /* text-xs */
+    font-size: 0.75rem;
     line-height: 1rem;
     color: #dc2626; /* red-600 */
-    margin-top: 0.25rem; /* mt-1 */
+    margin-top: 0.25rem;
 }
 
 /* .sort => text-[10px] text-neutral-400 */

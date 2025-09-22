@@ -1288,15 +1288,27 @@ function deleteGroup(g) {
 
 /* Modal form bits */
 .card-section {
-    @apply rounded-xl border p-4 bg-white/70;
+    border-radius: 0.75rem; /* rounded-xl */
+    border: 1px solid #e5e5e5; /* border (neutral-200-ish) */
+    padding: 1rem; /* p-4 */
+    background-color: rgba(255, 255, 255, 0.7); /* bg-white/70 */
 }
 .sec-title {
-    @apply mb-3 font-medium text-neutral-800;
+    margin-bottom: 0.75rem; /* mb-3 */
+    font-weight: 500; /* font-medium */
+    color: #262626; /* text-neutral-800 */
 }
 .lbl {
-    @apply block text-sm text-neutral-600 mb-1;
+    display: block; /* block */
+    font-size: 0.875rem; /* text-sm */
+    line-height: 1.25rem;
+    color: #525252; /* text-neutral-600 */
+    margin-bottom: 0.25rem; /* mb-1 */
 }
 .req {
-    @apply text-xs text-red-600 mt-1;
+    font-size: 0.75rem; /* text-xs */
+    line-height: 1rem;
+    color: #dc2626; /* text-red-600 */
+    margin-top: 0.25rem; /* mt-1 */
 }
 </style>

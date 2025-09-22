@@ -82,16 +82,7 @@
                                     class="block px-12 py-2 hover:bg-white/10"
                                     @click="$emit('select')"
                                 >
-                                    List Vehicle
-                                </NuxtLink>
-                            </li>
-                            <li>
-                                <NuxtLink
-                                    to="/vehicle/add"
-                                    class="block px-12 py-2 hover:bg-white/10"
-                                    @click="$emit('select')"
-                                >
-                                    Add Vehicle
+                                    Vehicle Management
                                 </NuxtLink>
                             </li>
                         </ul>
@@ -131,24 +122,6 @@
                                     List Driver
                                 </NuxtLink>
                             </li>
-                            <li>
-                                <NuxtLink
-                                    to="/driver/add"
-                                    class="block px-12 py-2 hover:bg-white/10"
-                                    @click="$emit('select')"
-                                >
-                                    Add Driver
-                                </NuxtLink>
-                            </li>
-                            <li>
-                                <NuxtLink
-                                    to="/driver/license"
-                                    class="block px-12 py-2 hover:bg-white/10"
-                                    @click="$emit('select')"
-                                >
-                                    License & Compliance
-                                </NuxtLink>
-                            </li>
                         </ul>
                     </div>
                 </li>
@@ -183,16 +156,7 @@
                                     class="block px-12 py-2 hover:bg-white/10"
                                     @click="$emit('select')"
                                 >
-                                    Schedule List
-                                </NuxtLink>
-                            </li>
-                            <li>
-                                <NuxtLink
-                                    to="/schedule/add"
-                                    class="block px-12 py-2 hover:bg-white/10"
-                                    @click="$emit('select')"
-                                >
-                                    Add Schedule
+                                    Schedule Management
                                 </NuxtLink>
                             </li>
                         </ul>
@@ -232,15 +196,6 @@
                                     Customer Management
                                 </NuxtLink>
                             </li>
-                            <li>
-                                <NuxtLink
-                                    to="/customer/add"
-                                    class="block px-12 py-2 hover:bg-white/10"
-                                    @click="$emit('select')"
-                                >
-                                    Add Customer
-                                </NuxtLink>
-                            </li>
                         </ul>
                     </div>
                 </li>
@@ -276,15 +231,6 @@
                                     @click="$emit('select')"
                                 >
                                     Fuel Management
-                                </NuxtLink>
-                            </li>
-                            <li>
-                                <NuxtLink
-                                    to="/fuel/add"
-                                    class="block px-12 py-2 hover:bg-white/10"
-                                    @click="$emit('select')"
-                                >
-                                    Add Fuel
                                 </NuxtLink>
                             </li>
                         </ul>
@@ -324,15 +270,6 @@
                                     Reminder Management
                                 </NuxtLink>
                             </li>
-                            <li>
-                                <NuxtLink
-                                    to="/reminder/add"
-                                    class="block px-12 py-2 hover:bg-white/10"
-                                    @click="$emit('select')"
-                                >
-                                    Add Reminder
-                                </NuxtLink>
-                            </li>
                         </ul>
                     </div>
                 </li>
@@ -370,15 +307,6 @@
                                     Load & Unload Management
                                 </NuxtLink>
                             </li>
-                            <li>
-                                <NuxtLink
-                                    to="/load-unload/add"
-                                    class="block px-12 py-2 hover:bg-white/10"
-                                    @click="$emit('select')"
-                                >
-                                    Add Load & Unload
-                                </NuxtLink>
-                            </li>
                         </ul>
                     </div>
                 </li>
@@ -409,20 +337,20 @@
                         <ul class="text-sm">
                             <li>
                                 <NuxtLink
-                                    to="/tracking/history"
+                                    to="/tracking"
                                     class="block px-12 py-2 hover:bg-white/10"
                                     @click="$emit('select')"
                                 >
-                                    History Tracking
+                                    Live Tracking
                                 </NuxtLink>
                             </li>
                             <li>
                                 <NuxtLink
-                                    to="/tracking/live"
+                                    to="/tracking/history"
                                     class="block px-12 py-2 hover:bg-white/10"
                                     @click="$emit('select')"
                                 >
-                                    Live Location
+                                    Tracking History
                                 </NuxtLink>
                             </li>
                         </ul>
