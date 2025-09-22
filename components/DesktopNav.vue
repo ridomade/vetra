@@ -312,7 +312,7 @@
             :class="isActive('/vehicle') ? 'bg-orange-500 text-white' : 'hover:bg-orange-500'"
         >
             <NuxtLink to="/vehicle" class="flex flex-col items-center justify-center w-full h-full">
-                <img src="/assets/img/icon-svg/Report.svg" class="w-[30px] h-5" alt="vehicle" />
+                <img src="/assets/img/icon-svg/report.svg" class="w-[30px] h-5" alt="vehicle" />
                 <p class="text-sm">Reports</p>
             </NuxtLink>
 
