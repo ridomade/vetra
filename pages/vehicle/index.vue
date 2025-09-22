@@ -28,9 +28,297 @@
                     />
                 </div>
 
-                <NuxtLink to="/vehicle/add" class="btn-primary h-9">+ Add Vehicle</NuxtLink>
+                <!-- open Add Vehicle modal -->
+                <button class="btn-primary h-9" @click="openVehCreate()">+ Add Vehicle</button>
             </div>
         </div>
+
+        <!-- ====================== ADD/EDIT VEHICLE MODAL ====================== -->
+        <transition name="fade">
+            <div
+                v-if="openVeh"
+                class="fixed inset-0 z-50"
+                role="dialog"
+                aria-modal="true"
+                @keydown.esc="closeVehModal"
+            >
+                <div class="absolute inset-0 bg-black/50" @click.self="closeVehModal"></div>
+
+                <div
+                    class="relative mx-auto my-6 w-[96vw] max-w-6xl rounded-2xl bg-white shadow-xl ring-1 ring-black/5"
+                >
+                    <!-- Header -->
+                    <div class="flex items-start justify-between border-b px-5 py-4">
+                        <h3 class="text-lg font-semibold">{{ vehModalTitle }}</h3>
+                        <button
+                            class="rounded p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700"
+                            aria-label="Close"
+                            @click="closeVehModal"
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="grid gap-4 p-5 md:grid-cols-[1fr_360px]">
+                        <!-- LEFT: form -->
+                        <form
+                            @submit.prevent="saveVehicle"
+                            class="space-y-5 max-h-[75vh] overflow-y-auto pr-1"
+                        >
+                            <!-- General Information -->
+                            <div class="card-section">
+                                <h4 class="sec-title">General Information</h4>
+                                <div class="grid gap-4 md:grid-cols-2">
+                                    <!-- Registration Number -->
+                                    <div>
+                                        <label class="lbl">Registration Number</label>
+                                        <input
+                                            v-model.trim="vehForm.regNo"
+                                            type="text"
+                                            required
+                                            placeholder="Registration Number"
+                                            class="input"
+                                        />
+                                        <p v-if="!vehForm.regNo" class="req">Required</p>
+                                    </div>
+
+                                    <!-- Vehicle Name -->
+                                    <div>
+                                        <label class="lbl">Vehicle Name</label>
+                                        <input
+                                            v-model.trim="vehForm.name"
+                                            type="text"
+                                            required
+                                            placeholder="Vehicle Name"
+                                            class="input"
+                                        />
+                                        <p v-if="!vehForm.name" class="req">Required</p>
+                                    </div>
+
+                                    <!-- Model -->
+                                    <div>
+                                        <label class="lbl">Model</label>
+                                        <input
+                                            v-model.trim="vehForm.model"
+                                            type="text"
+                                            required
+                                            placeholder="Model"
+                                            class="input"
+                                        />
+                                        <p v-if="!vehForm.model" class="req">Required</p>
+                                    </div>
+
+                                    <!-- Manufactured By -->
+                                    <div>
+                                        <label class="lbl">Manufactured By</label>
+                                        <input
+                                            v-model.trim="vehForm.manufacturer"
+                                            type="text"
+                                            placeholder="Manufacturer"
+                                            class="input"
+                                        />
+                                    </div>
+
+                                    <!-- Chassis No -->
+                                    <div>
+                                        <label class="lbl">Chassis No</label>
+                                        <input
+                                            v-model.trim="vehForm.chassisNo"
+                                            type="text"
+                                            placeholder="Chassis No"
+                                            class="input"
+                                        />
+                                    </div>
+
+                                    <!-- Engine No -->
+                                    <div>
+                                        <label class="lbl">Engine No</label>
+                                        <input
+                                            v-model.trim="vehForm.engineNo"
+                                            type="text"
+                                            placeholder="Engine No"
+                                            class="input"
+                                        />
+                                    </div>
+
+                                    <!-- Truck Index -->
+                                    <div>
+                                        <label class="lbl">Truck Index</label>
+                                        <select v-model="vehForm.truckIndex" class="input">
+                                            <option value="" disabled>Select truck index</option>
+                                            <option
+                                                v-for="opt in truckIndexOptions"
+                                                :key="opt"
+                                                :value="opt"
+                                            >
+                                                {{ opt }}
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Vehicle Group -->
+                                    <div>
+                                        <label class="lbl">Vehicle Group</label>
+                                        <select v-model="vehForm.group" class="input">
+                                            <option value="" disabled>Select vehicle group</option>
+                                            <option v-for="g in groups" :key="g.id" :value="g.name">
+                                                {{ g.name }}
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Registration Expiry Date -->
+                                    <div>
+                                        <label class="lbl">Registration Expiry Date</label>
+                                        <input
+                                            v-model="vehForm.regExpiry"
+                                            type="date"
+                                            class="input"
+                                        />
+                                    </div>
+
+                                    <!-- Vehicle Color -->
+                                    <div>
+                                        <label class="lbl"
+                                            >Vehicle Color
+                                            <span class="text-xs text-neutral-500"
+                                                >(map pin)</span
+                                            ></label
+                                        >
+                                        <div class="flex items-center gap-2">
+                                            <input
+                                                v-model="vehForm.color"
+                                                type="color"
+                                                class="h-9 w-12 rounded-md border cursor-pointer"
+                                            />
+                                            <div
+                                                class="h-9 w-9 rounded-md border"
+                                                :style="{ backgroundColor: vehForm.color }"
+                                            ></div>
+                                            <input
+                                                v-model.trim="vehForm.color"
+                                                type="text"
+                                                class="input w-[140px]"
+                                                placeholder="#HEX"
+                                            />
+                                            <button
+                                                type="button"
+                                                class="btn-subtle"
+                                                @click="randomColor"
+                                            >
+                                                Random
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- GPS API Details -->
+                            <div class="card-section">
+                                <h4 class="sec-title">
+                                    GPS API Details
+                                    <span class="text-xs text-neutral-400">(feed GPS data)</span>
+                                </h4>
+                                <div class="grid gap-4 md:grid-cols-2">
+                                    <div class="md:col-span-2">
+                                        <label class="lbl">API URL</label>
+                                        <input
+                                            v-model.trim="vehForm.apiUrl"
+                                            type="url"
+                                            class="input"
+                                            placeholder="https://gps.vendor.com/api"
+                                        />
+                                        <p class="text-[11px] text-neutral-400 mt-1">
+                                            e.g., https://gps.vendor.com/api
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <label class="lbl">API Username</label>
+                                        <input
+                                            v-model.trim="vehForm.apiUsername"
+                                            type="text"
+                                            class="input"
+                                            placeholder="API Username"
+                                        />
+                                    </div>
+
+                                    <div class="relative">
+                                        <label class="lbl">API Password</label>
+                                        <input
+                                            :type="showPwd ? 'text' : 'password'"
+                                            v-model.trim="vehForm.apiPassword"
+                                            class="input pr-14"
+                                            placeholder="••••••••"
+                                        />
+                                        <button
+                                            type="button"
+                                            class="absolute right-2 top-[34px] text-xs rounded px-2 py-1 border hover:bg-neutral-50"
+                                            @click="showPwd = !showPwd"
+                                        >
+                                            {{ showPwd ? "Hide" : "Show" }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Footer buttons -->
+                            <div
+                                class="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end"
+                            >
+                                <button
+                                    type="button"
+                                    class="rounded-lg border px-4 py-2 text-sm hover:bg-neutral-50"
+                                    @click="resetVehForm"
+                                >
+                                    Reset
+                                </button>
+                                <button type="submit" class="btn-primary" :disabled="!canSaveVeh">
+                                    {{ vehIsEdit ? "Save Changes" : "Add Vehicle" }}
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- RIGHT: preview -->
+                        <aside class="space-y-4">
+                            <div class="rounded-2xl border bg-white p-4 shadow-sm">
+                                <div class="flex items-start gap-3">
+                                    <div
+                                        class="h-12 w-12 rounded-xl border"
+                                        :style="{ backgroundColor: vehForm.color }"
+                                    ></div>
+                                    <div class="min-w-0">
+                                        <h4 class="font-semibold leading-tight truncate">
+                                            {{ vehForm.name || "Vehicle Name" }}
+                                        </h4>
+                                        <p class="text-xs text-neutral-500">
+                                            {{ vehForm.regNo || "REG-0000" }} ·
+                                            {{ vehForm.model || "Model" }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                                    <div class="text-neutral-500">Truck Index</div>
+                                    <div class="text-neutral-900">
+                                        {{ vehForm.truckIndex || "-" }}
+                                    </div>
+
+                                    <div class="text-neutral-500">Registration Expiry</div>
+                                    <div class="text-neutral-900">
+                                        {{ vehForm.regExpiry || "-" }}
+                                    </div>
+
+                                    <div class="text-neutral-500">Group</div>
+                                    <div class="text-neutral-900">{{ vehForm.group || "-" }}</div>
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+            </div>
+        </transition>
 
         <!-- ====================== VEHICLES ====================== -->
         <section class="card">
@@ -107,7 +395,7 @@
                                             />
                                         </svg>
                                     </button>
-                                    <button class="icon-btn" title="Edit" @click="editVehicle(v)">
+                                    <button class="icon-btn" title="Edit" @click="startVehEdit(v)">
                                         <svg viewBox="0 0 24 24" class="icon">
                                             <path
                                                 d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
@@ -187,7 +475,7 @@
 
                     <div class="mt-3 flex items-center gap-2">
                         <button class="btn-subtle" @click="viewVehicle(v)">View</button>
-                        <button class="btn-subtle" @click="editVehicle(v)">Edit</button>
+                        <button class="btn-subtle" @click="startVehEdit(v)">Edit</button>
                         <button class="btn-subtle" @click="toggleActive(v)">
                             {{ v.active ? "Set Inactive" : "Set Active" }}
                         </button>
@@ -243,7 +531,7 @@
             <div class="flex items-center justify-between gap-3 border-b bg-neutral-50 p-3 md:p-4">
                 <button class="btn-primary h-9" @click="openCreate()">+ Add Group</button>
 
-                <!-- Modal (ADD/EDIT) -->
+                <!-- Group Modal (ADD/EDIT) -->
                 <transition name="fade">
                     <div
                         v-if="open"
@@ -456,16 +744,118 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
-import { useRouter } from "vue-router";
 
-const router = useRouter();
+/* ========= VEHICLE MODAL ========= */
+const openVeh = ref(false);
+const vehIsEdit = ref(false);
+const vehEditingId = ref(null);
+const showPwd = ref(false);
+
+const vehForm = ref({
+    // general
+    regNo: "",
+    name: "",
+    model: "",
+    manufacturer: "",
+    engineNo: "",
+    chassisNo: "",
+    truckIndex: "",
+    group: "",
+    regExpiry: "",
+    color: "#F399EB",
+    // api
+    apiUrl: "",
+    apiUsername: "",
+    apiPassword: "",
+});
+
+const vehModalTitle = computed(() => (vehIsEdit.value ? "Edit Vehicle" : "Add Vehicle"));
+const canSaveVeh = computed(
+    () => !!vehForm.value.regNo && !!vehForm.value.name && !!vehForm.value.model
+);
+
+const truckIndexOptions = ["A1", "A2", "B1", "B2", "C1", "C2"];
+
+function resetVehForm() {
+    vehForm.value = {
+        regNo: "",
+        name: "",
+        model: "",
+        manufacturer: "",
+        engineNo: "",
+        chassisNo: "",
+        truckIndex: "",
+        group: "",
+        regExpiry: "",
+        color: "#F399EB",
+        apiUrl: "",
+        apiUsername: "",
+        apiPassword: "",
+    };
+    vehEditingId.value = null;
+    vehIsEdit.value = false;
+    showPwd.value = false;
+}
+function openVehCreate() {
+    resetVehForm();
+    openVeh.value = true;
+}
+function startVehEdit(v) {
+    vehIsEdit.value = true;
+    vehEditingId.value = v.id;
+    vehForm.value = {
+        regNo: v.regNo || "",
+        name: v.name || "",
+        model: v.model || "",
+        manufacturer: v.manufacturer || "",
+        engineNo: v.engineNo || "",
+        chassisNo: v.chassisNo || "",
+        truckIndex: v.truckIndex || "",
+        group: v.group || "",
+        regExpiry: v.regExpiry || "",
+        color: v.color || "#F399EB",
+        apiUrl: v.apiUrl || "",
+        apiUsername: v.apiUsername || "",
+        apiPassword: v.apiPassword || "",
+    };
+    openVeh.value = true;
+}
+function closeVehModal() {
+    openVeh.value = false;
+}
+
+function saveVehicle() {
+    if (!canSaveVeh.value) return;
+
+    if (vehIsEdit.value && vehEditingId.value != null) {
+        const idx = vehicles.value.findIndex((x) => x.id === vehEditingId.value);
+        if (idx !== -1) {
+            vehicles.value[idx] = {
+                ...vehicles.value[idx],
+                ...vehForm.value,
+            };
+        }
+    } else {
+        const newId = (vehicles.value.at(-1)?.id || 0) + 1;
+        vehicles.value.push({
+            id: newId,
+            active: true,
+            ...vehForm.value,
+        });
+    }
+    closeVehModal();
+}
+
+function randomColor() {
+    const n = Math.floor(Math.random() * 0xffffff);
+    vehForm.value.color = `#${n.toString(16).padStart(6, "0").toUpperCase()}`;
+}
 
 /* ========= MODAL (ADD/EDIT GROUP) ========= */
 const open = ref(false);
 const isEdit = ref(false);
 const editingId = ref(null);
 const form = ref({ name: "", description: "" });
-
 const modalTitle = computed(() => (isEdit.value ? "Edit Group" : "Add New Group"));
 
 function resetForm() {
@@ -473,24 +863,19 @@ function resetForm() {
     editingId.value = null;
     isEdit.value = false;
 }
-
 function openCreate() {
     resetForm();
     open.value = true;
 }
-
 function startEdit(g) {
     isEdit.value = true;
     editingId.value = g.id;
     form.value = { name: g.name, description: g.desc };
     open.value = true;
 }
-
 function closeModal() {
     open.value = false;
-    // form tetap—tidak masalah; akan direset saat openCreate atau startEdit
 }
-
 function formatNow() {
     const pad = (n) => String(n).padStart(2, "0");
     const d = new Date();
@@ -498,7 +883,6 @@ function formatNow() {
         d.getHours()
     )}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
-
 function onSubmit() {
     if (!form.value.name.trim()) return;
     if (isEdit.value && editingId.value != null) {
@@ -522,10 +906,11 @@ function onSubmit() {
     closeModal();
 }
 
-/* kunci scroll saat modal terbuka */
+/* Lock scroll if any modal open */
 const lockScroll = () => document.documentElement.classList.add("overflow-hidden");
 const unlockScroll = () => document.documentElement.classList.remove("overflow-hidden");
-watch(open, (v) => (v ? lockScroll() : unlockScroll()));
+const anyModalOpen = computed(() => open.value || openVeh.value);
+watch(anyModalOpen, (v) => (v ? lockScroll() : unlockScroll()));
 onMounted(() => unlockScroll());
 onBeforeUnmount(unlockScroll);
 
@@ -659,13 +1044,12 @@ const filtered = computed(() => {
             v.name.toLowerCase().includes(term) ||
             v.regNo.toLowerCase().includes(term) ||
             v.model.toLowerCase().includes(term) ||
-            v.chassisNo.toLowerCase().includes(term) ||
-            v.group.toLowerCase().includes(term);
+            (v.chassisNo || "").toLowerCase().includes(term) ||
+            (v.group || "").toLowerCase().includes(term);
         const matchS = stat === "all" ? true : stat === "active" ? v.active : !v.active;
         return matchQ && matchS;
     });
 });
-
 const sorted = computed(() => {
     const arr = [...filtered.value];
     const dir = sortDir.value === "asc" ? 1 : -1;
@@ -678,7 +1062,6 @@ const sorted = computed(() => {
         return (av - bv) * dir;
     });
 });
-
 const totalPages = computed(() => Math.max(1, Math.ceil(sorted.value.length / perPage.value)));
 const paginated = computed(() => {
     if (page.value > totalPages.value) page.value = totalPages.value;
@@ -702,9 +1085,6 @@ const sortIcon = (key) => (sortBy.value !== key ? "" : sortDir.value === "asc" ?
 
 function viewVehicle(v) {
     alert(`View: ${v.name} (${v.regNo})`);
-}
-function editVehicle(v) {
-    router.push(`/vehicle/add?editId=${v.id}`);
 }
 function deleteVehicle(v) {
     if (confirm(`Delete "${v.name}"?`))
@@ -770,7 +1150,6 @@ function setSortG(key) {
         : ((sortByG.value = key), (sortDirG.value = "asc"));
 }
 const sortIconG = (key) => (sortByG.value !== key ? "" : sortDirG.value === "asc" ? "▲" : "▼");
-
 function deleteGroup(g) {
     if (confirm(`Delete group "${g.name}"?`)) {
         groups.value = groups.value.filter((x) => x.id !== g.id);
@@ -782,132 +1161,122 @@ function deleteGroup(g) {
 <style scoped>
 /* Minimal CSS; sisanya Tailwind */
 .card {
-    border-radius: 1rem; /* rounded-2xl */
-    border: 1px solid #e5e7eb; /* border (neutral-200 default) */
-    background-color: #ffffff; /* bg-white */
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); /* shadow-sm */
-    overflow: hidden; /* overflow-hidden */
+    border-radius: 1rem;
+    border: 1px solid #e5e7eb;
+    background-color: #ffffff;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    overflow: hidden;
 }
-
 .th {
-    padding-top: 0.75rem; /* py-3 */
-    padding-bottom: 0.75rem;
-    padding-left: 1rem; /* px-4 */
-    padding-right: 1rem;
-    font-size: 0.75rem; /* text-xs */
-    font-weight: 600; /* font-semibold */
-    color: rgb(64 64 64); /* text-neutral-700 */
-    white-space: nowrap; /* whitespace-nowrap */
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgb(64 64 64);
+    white-space: nowrap;
 }
-
 .th-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem; /* gap-1 */
+    gap: 0.25rem;
     color: inherit;
     transition: color 0.2s;
 }
 .th-btn:hover {
-    color: rgb(23 23 23); /* hover:text-neutral-900 */
+    color: rgb(23 23 23);
 }
-
 .sort {
-    font-size: 0.625rem; /* text-[10px] */
-    color: rgb(163 163 163); /* text-neutral-400 */
+    font-size: 0.625rem;
+    color: rgb(163 163 163);
 }
-
 .td {
-    padding-top: 0.75rem; /* py-3 */
-    padding-bottom: 0.75rem;
-    padding-left: 1rem; /* px-4 */
-    padding-right: 1rem;
-    vertical-align: middle; /* align-middle */
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
 }
 
 .input {
-    width: 100%; /* w-full */
-    border-radius: 0.75rem; /* rounded-xl */
-    border: 1px solid #e5e7eb; /* border-neutral-200 */
-    background-color: #ffffff; /* bg-white */
-    padding: 0.5rem 0.75rem; /* py-2 px-3 */
-    font-size: 0.875rem; /* text-sm */
-    outline: none; /* outline-none */
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    background-color: #ffffff;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    outline: none;
     transition: all 0.2s;
 }
 .input:focus {
-    border-color: #9ca3af; /* focus:border-neutral-400 */
-    box-shadow: 0 0 0 2px rgb(23 23 23 / 0.1); /* focus:ring-2 focus:ring-neutral-900/10 */
+    border-color: #9ca3af;
+    box-shadow: 0 0 0 2px rgb(23 23 23 / 0.1);
 }
 
 .btn-primary {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0.75rem; /* rounded-xl */
-    background-color: rgb(23 23 23); /* bg-neutral-900 */
-    padding: 0.5rem 1rem; /* py-2 px-4 */
-    font-size: 0.875rem; /* text-sm */
-    font-weight: 500; /* font-medium */
-    color: #ffffff; /* text-white */
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); /* shadow-sm */
+    border-radius: 0.75rem;
+    background-color: rgb(23 23 23);
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #fff;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     transition: background-color 0.2s;
 }
 .btn-primary:hover {
-    background-color: rgb(38 38 38); /* hover:bg-neutral-800 */
+    background-color: rgb(38 38 38);
 }
 .btn-primary:disabled {
-    opacity: 0.5; /* disabled:opacity-50 */
+    opacity: 0.5;
 }
 
 .btn-subtle {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0.75rem; /* rounded-xl */
-    border: 1px solid #e5e7eb; /* border */
-    padding: 0.375rem 0.75rem; /* py-1.5 px-3 */
-    font-size: 0.75rem; /* text-xs */
-    font-weight: 500; /* font-medium */
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
     transition: background-color 0.2s;
 }
 .btn-subtle:hover {
-    background-color: rgb(250 250 250); /* hover:bg-neutral-50 */
+    background-color: rgb(250 250 250);
 }
 
 .btn-danger {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0.75rem; /* rounded-xl */
-    border: 1px solid rgb(254 202 202); /* border-red-200 */
-    color: rgb(220 38 38); /* text-red-600 */
-    padding: 0.375rem 0.75rem; /* py-1.5 px-3 */
-    font-size: 0.75rem; /* text-xs */
-    font-weight: 500; /* font-medium */
+    border-radius: 0.75rem;
+    border: 1px solid rgb(254 202 202);
+    color: rgb(220 38 38);
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
     transition: background-color 0.2s;
 }
 .btn-danger:hover {
-    background-color: rgb(254 242 242); /* hover:bg-red-50 */
+    background-color: rgb(254 242 242);
 }
 
 .icon-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 2rem; /* w-8 */
-    height: 2rem; /* h-8 */
-    border-radius: 0.5rem; /* rounded-lg */
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
     transition: background-color 0.2s;
 }
 .icon-btn:hover {
-    background-color: rgb(245 245 245); /* hover:bg-neutral-100 */
+    background-color: rgb(245 245 245);
 }
-
 .icon {
     width: 16px;
     height: 16px;
     fill: currentColor;
 }
+
 .fade-enter-active,
 .fade-leave-active {
     transition: opacity 0.15s ease;
@@ -915,5 +1284,19 @@ function deleteGroup(g) {
 .fade-enter-from,
 .fade-leave-to {
     opacity: 0;
+}
+
+/* Modal form bits */
+.card-section {
+    @apply rounded-xl border p-4 bg-white/70;
+}
+.sec-title {
+    @apply mb-3 font-medium text-neutral-800;
+}
+.lbl {
+    @apply block text-sm text-neutral-600 mb-1;
+}
+.req {
+    @apply text-xs text-red-600 mt-1;
 }
 </style>
