@@ -200,10 +200,10 @@
             <!-- Geofence -->
             <div
                 class="relative group flex flex-col items-center justify-center h-12 w-24 cursor-pointer transition-colors duration-300 rounded-md"
-                :class="isActive('/vehicle') ? 'bg-orange-500 text-white' : 'hover:bg-orange-500'"
+                :class="isActive('/geofence') ? 'bg-orange-500 text-white' : 'hover:bg-orange-500'"
             >
                 <NuxtLink
-                    to="/vehicle"
+                    to="/geofence"
                     class="flex flex-col items-center justify-center w-full h-full"
                 >
                     <img
@@ -220,18 +220,13 @@
                 >
                     <ul class="text-sm text-white py-1">
                         <li>
-                            <NuxtLink to="/vehicle" class="block px-4 py-2 hover:bg-white/10"
-                                >Add Geofence</NuxtLink
+                            <NuxtLink to="/geofence" class="block px-4 py-2 hover:bg-white/10">
+                                Geofence Management</NuxtLink
                             >
                         </li>
                         <li>
-                            <NuxtLink to="/vehicle/add" class="block px-4 py-2 hover:bg-white/10">
-                                Geofence Management
-                            </NuxtLink>
-                        </li>
-                        <li>
-                            <NuxtLink to="/vehicle/add" class="block px-4 py-2 hover:bg-white/10"
-                                >Geofence Events</NuxtLink
+                            <NuxtLink to="/geofence/list" class="block px-4 py-2 hover:bg-white/10">
+                                Geofence List</NuxtLink
                             >
                         </li>
                     </ul>
