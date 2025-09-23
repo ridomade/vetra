@@ -135,7 +135,11 @@
 import { ref, reactive, onMounted, onBeforeUnmount } from "vue";
 import { useHead } from "#imports";
 
-// Use Leaflet from CDN (no TS typings needed)
+/** Lokasi pusat: Pt. Bara Mega Quantum */
+const SITE = { lat: -3.8447964, lng: 102.3431685 };
+const INITIAL_ZOOM = 14;
+
+// Leaflet via CDN
 useHead({
     link: [{ rel: "stylesheet", href: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" }],
     script: [{ src: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js", defer: true }],
@@ -170,27 +174,27 @@ const polylines: Record<string, any> = {};
 const paths: Record<string, [number, number][]> = {};
 const cursors: Record<string, { i: number }> = {};
 
-// Sample paths for simulation
+// ===== Sample paths di sekitar SITE =====
 paths["truck-a"] = [
-    [-6.9175, 107.6191],
-    [-6.8, 107.9],
-    [-6.5, 108.3],
-    [-6.2, 107.0],
-    [-6.1745, 106.8227],
+    [SITE.lat - 0.004, SITE.lng - 0.006],
+    [SITE.lat - 0.003, SITE.lng - 0.003],
+    [SITE.lat - 0.001, SITE.lng - 0.001],
+    [SITE.lat + 0.001, SITE.lng + 0.001],
+    [SITE.lat + 0.002, SITE.lng + 0.003],
 ];
 paths["truck-b"] = [
-    [-7.2575, 112.7521],
-    [-7.0, 112.2],
-    [-6.8, 111.7],
-    [-6.6, 111.0],
-    [-6.4, 110.4],
+    [SITE.lat + 0.005, SITE.lng - 0.004],
+    [SITE.lat + 0.003, SITE.lng - 0.002],
+    [SITE.lat + 0.001, SITE.lng + 0.0],
+    [SITE.lat - 0.001, SITE.lng + 0.002],
+    [SITE.lat - 0.003, SITE.lng + 0.004],
 ];
 paths["truck-c"] = [
-    [-6.1214, 106.7741],
-    [-6.3, 106.3],
-    [-6.4, 106.0],
-    [-6.5, 105.9],
-    [-6.7, 105.7],
+    [SITE.lat - 0.002, SITE.lng + 0.006],
+    [SITE.lat - 0.001, SITE.lng + 0.003],
+    [SITE.lat + 0.0, SITE.lng + 0.0],
+    [SITE.lat + 0.002, SITE.lng - 0.002],
+    [SITE.lat + 0.004, SITE.lng - 0.004],
 ];
 
 function liveOf(id: string) {
@@ -200,7 +204,7 @@ function isOnline(id: string) {
     return Boolean(live[id]);
 }
 
-// Safe formatters (menghindari error TS2532 di template)
+// Safe formatters
 const fmtLat = (id: string): string => {
     const p = liveOf(id);
     return p ? p.lat.toFixed(5) : "-";
@@ -280,7 +284,6 @@ function addOrUpdate(id: string, p: LivePoint) {
                 opacity: 0.9,
             }).addTo(layerGroup);
         else polylines[id].addLatLng(latlng);
-        // limit trail length
         const latlngs = polylines[id].getLatLngs();
         if (latlngs.length > TAIL_MAX)
             polylines[id].setLatLngs(latlngs.slice(latlngs.length - TAIL_MAX));
@@ -306,19 +309,17 @@ async function fetchLivePositions(ids: string[]): Promise<Record<string, LivePoi
     const now = Date.now();
     const out: Record<string, LivePoint> = {};
     ids.forEach((id) => {
-        // progress along a predefined path
-        const path = paths[id] || [[-6.2, 106.8]];
+        const path = paths[id] || [[SITE.lat, SITE.lng]]; // fallback di SITE
         if (!cursors[id]) cursors[id] = { i: 0 };
         const i = cursors[id].i;
         const nextI = (i + 1) % path.length;
         const [lat1, lng1] = path[i];
         const [lat2, lng2] = path[nextI];
-        // small interpolation for smoother movement
-        const step = 0.25 + Math.random() * 0.5; // 0.25..0.75 fraction per tick
+        const step = 0.25 + Math.random() * 0.5;
         const lat = lat1 + (lat2 - lat1) * step;
         const lng = lng1 + (lng2 - lng1) * step;
         cursors[id].i = nextI;
-        const speed = 40 + Math.round(Math.random() * 30); // fake speed
+        const speed = 40 + Math.round(Math.random() * 30);
         out[id] = { lat, lng, speed, ts: now };
     });
     return out;
@@ -353,7 +354,6 @@ function stop() {
 
 function clearTrails() {
     if (layerGroup) layerGroup.clearLayers();
-    // re-add markers without trails if we have last positions
     Object.entries(live).forEach(([id, p]) => {
         if (p) addOrUpdate(id, p);
     });
@@ -367,7 +367,7 @@ async function initMap() {
         maxZoom: 19,
         attribution: "&copy; OpenStreetMap",
     }).addTo(map);
-    map.setView([-6.9175, 107.6191], 6);
+    map.setView([SITE.lat, SITE.lng], INITIAL_ZOOM);
     layerGroup = L.layerGroup().addTo(map);
 }
 
@@ -381,24 +381,78 @@ onBeforeUnmount(() => stop());
 
 <style scoped>
 .card {
-    @apply rounded-2xl border bg-white shadow-sm;
+    border-radius: 1rem;
+    border: 1px solid #e5e7eb;
+    background-color: #ffffff;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 .input {
-    @apply w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-400 transition;
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    background-color: #ffffff;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    outline: none;
+    transition: all 0.2s ease-in-out;
+}
+.input:focus {
+    border-color: #9ca3af;
+    box-shadow: 0 0 0 2px rgb(23 23 23 / 0.1);
 }
 .btn-primary {
-    @apply inline-flex items-center justify-center rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-neutral-800 disabled:opacity-50;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    background-color: #171717;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #ffffff;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    transition: background-color 0.2s ease-in-out, opacity 0.2s ease-in-out;
+}
+.btn-primary:hover {
+    background-color: #262626;
+}
+.btn-primary:disabled {
+    opacity: 0.5;
 }
 .btn-subtle {
-    @apply inline-flex items-center justify-center rounded-xl border px-3 py-1.5 text-xs font-medium hover:bg-neutral-50 disabled:opacity-50;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background-color: #fff;
+    transition: background-color 0.2s ease-in-out, opacity 0.2s ease-in-out;
+}
+.btn-subtle:hover {
+    background-color: #fafafa;
+}
+.btn-subtle:disabled {
+    opacity: 0.5;
 }
 .lbl {
-    @apply block text-sm text-neutral-700 mb-1;
+    display: block;
+    font-size: 0.875rem;
+    color: #404040;
+    margin-bottom: 0.25rem;
 }
 .th {
-    @apply py-2 px-3 text-xs font-semibold text-neutral-700 whitespace-nowrap;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #404040;
+    white-space: nowrap;
 }
 .td {
-    @apply py-2 px-3 align-middle;
+    padding: 0.5rem 0.75rem;
+    vertical-align: middle;
 }
 </style>

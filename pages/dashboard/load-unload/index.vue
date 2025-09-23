@@ -158,6 +158,8 @@
                                     <span class="text-[10px]">{{ sortIcon("completion") }}</span>
                                 </button>
                             </th>
+                            <!-- ... kolom lain ... -->
+                            <th class="py-2 px-4 w-14">Detail</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -198,6 +200,20 @@
                                     {{ v.completion.toFixed(1) }}%
                                 </span>
                             </td>
+                            <td class="py-2 px-4">
+                                <button
+                                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-neutral-100"
+                                    title="Lihat detail"
+                                    @click="goDetail(v)"
+                                >
+                                    <!-- ikon "chart" -->
+                                    <svg viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor">
+                                        <path
+                                            d="M3 3h2v18H3V3zm16 8h2v10h-2V11zM11 7h2v14h-2V7zM7 13h2v8H7v-8zm8-10h2v18h-2V3z"
+                                        />
+                                    </svg>
+                                </button>
+                            </td>
                         </tr>
                         <tr v-if="vehiclesSorted.length === 0">
                             <td colspan="6" class="py-6 text-center text-neutral-500">No data.</td>
@@ -212,6 +228,18 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed, watch } from "vue";
 import Chart from "chart.js/auto";
+import { useRouter } from "vue-router";
+const router = useRouter();
+
+const toSlug = (s) =>
+    String(s)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+
+function goDetail(v) {
+    router.push(`/dashboard/load-unload/${toSlug(v.name)}`);
+}
 
 /**
  * Dummy Data — untuk load/unload per kendaraan (harian atau periodik).

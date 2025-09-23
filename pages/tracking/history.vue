@@ -59,7 +59,21 @@
 import { ref, reactive, onMounted } from "vue";
 import { useHead } from "#imports";
 
-// Load Leaflet via CDN to avoid TS typings requirement
+/** Pusat lokasi: Pt. Bara Mega Quantum */
+const SITE = { lat: -3.8447964, lng: 102.3431685 };
+const INITIAL_ZOOM = 14;
+
+// ====== FLAGS (PROD vs DUMMY) ======
+const USE_DUMMY = true; // set ke false saat pakai data asli
+const SNAP_TO_ROADS = true; // true = rute mengikuti jalan via OSRM
+const OFFTRACK = {
+    // simulasi off-track internal (hanya untuk dummy)
+    enabled: USE_DUMMY, // set ke false saat data asli
+    pct: 12, // ~12% titik akan menyimpang
+    maxMeters: 30, // deviasi maks 30 m
+};
+
+// Leaflet via CDN
 useHead({
     link: [{ rel: "stylesheet", href: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" }],
     script: [{ src: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js", defer: true }],
@@ -75,28 +89,22 @@ const vehicles = [
     { id: "truck-c", label: "Truck C" },
 ];
 
-// Dummy tracks
+/** Waypoints contoh di sekitar SITE (dummy). Ganti ke data backend saat real. */
 const tracks: Record<string, Array<{ lat: number; lng: number; ts: string }>> = {
     "truck-a": [
-        { lat: -6.9175, lng: 107.6191, ts: "2025-09-21T07:10:00Z" },
-        { lat: -6.8, lng: 107.9, ts: "2025-09-21T07:40:00Z" },
-        { lat: -6.5, lng: 108.3, ts: "2025-09-21T08:20:00Z" },
-        { lat: -6.2, lng: 107.0, ts: "2025-09-21T09:10:00Z" },
-        { lat: -6.1745, lng: 106.8227, ts: "2025-09-21T10:00:00Z" },
+        { lat: SITE.lat - 0.004, lng: SITE.lng - 0.006, ts: "2025-09-21T07:10:00Z" },
+        { lat: SITE.lat - 0.001, lng: SITE.lng - 0.001, ts: "2025-09-21T07:45:00Z" },
+        { lat: SITE.lat + 0.002, lng: SITE.lng + 0.003, ts: "2025-09-21T08:25:00Z" },
     ],
     "truck-b": [
-        { lat: -7.2575, lng: 112.7521, ts: "2025-09-22T03:20:00Z" },
-        { lat: -7.0, lng: 112.2, ts: "2025-09-22T04:00:00Z" },
-        { lat: -6.8, lng: 111.7, ts: "2025-09-22T04:45:00Z" },
-        { lat: -6.6, lng: 111.0, ts: "2025-09-22T05:30:00Z" },
-        { lat: -6.4, lng: 110.4, ts: "2025-09-22T06:15:00Z" },
+        { lat: SITE.lat + 0.005, lng: SITE.lng - 0.004, ts: "2025-09-22T03:20:00Z" },
+        { lat: SITE.lat + 0.001, lng: SITE.lng + 0.0, ts: "2025-09-22T04:05:00Z" },
+        { lat: SITE.lat - 0.003, lng: SITE.lng + 0.004, ts: "2025-09-22T04:50:00Z" },
     ],
     "truck-c": [
-        { lat: -6.1214, lng: 106.7741, ts: "2025-09-23T01:00:00Z" },
-        { lat: -6.3, lng: 106.3, ts: "2025-09-23T02:00:00Z" },
-        { lat: -6.4, lng: 106.0, ts: "2025-09-23T03:00:00Z" },
-        { lat: -6.5, lng: 105.9, ts: "2025-09-23T04:00:00Z" },
-        { lat: -6.7, lng: 105.7, ts: "2025-09-23T05:00:00Z" },
+        { lat: SITE.lat - 0.002, lng: SITE.lng + 0.006, ts: "2025-09-23T01:00:00Z" },
+        { lat: SITE.lat + 0.0, lng: SITE.lng + 0.0, ts: "2025-09-23T01:40:00Z" },
+        { lat: SITE.lat + 0.004, lng: SITE.lng - 0.004, ts: "2025-09-23T02:30:00Z" },
     ],
 };
 
@@ -105,9 +113,9 @@ const filters = reactive({ from: "", to: "", vehicle: "all" });
 function waitForLeaflet(): Promise<void> {
     return new Promise((resolve) => {
         if (typeof window !== "undefined" && (window as any).L) return resolve();
-        const timer = setInterval(() => {
+        const t = setInterval(() => {
             if ((window as any).L) {
-                clearInterval(timer);
+                clearInterval(t);
                 resolve();
             }
         }, 30);
@@ -122,35 +130,81 @@ function colorFor(id: string) {
     };
     return map[id] || "#0ea5e9";
 }
-
 function toEndOfDay(d: Date) {
     const x = new Date(d);
     x.setHours(23, 59, 59, 999);
     return x;
 }
-
 function clearLayers() {
     if (layerGroup) layerGroup.clearLayers();
 }
+function labelFor(id: string) {
+    return vehicles.find((v) => v.id === id)?.label || id;
+}
 
-function loadRoutes() {
+// ---------- Simulasi off-track internal (tidak tampil di UI) ----------
+function addJitter(lat: number, lng: number, maxMeters: number): [number, number] {
+    if (maxMeters <= 0) return [lat, lng];
+    const bearing = Math.random() * 2 * Math.PI;
+    const dist = Math.random() * maxMeters;
+    const metersPerDegLat = 111_320;
+    const metersPerDegLng = 111_320 * Math.cos((lat * Math.PI) / 180);
+    const dLat = (Math.cos(bearing) * dist) / metersPerDegLat;
+    const dLng = (Math.sin(bearing) * dist) / metersPerDegLng;
+    return [lat + dLat, lng + dLng];
+}
+function maybeOffTrack(path: [number, number][]): [number, number][] {
+    if (!OFFTRACK.enabled || OFFTRACK.pct <= 0 || OFFTRACK.maxMeters <= 0) return path;
+    return path.map(([la, lo]) =>
+        Math.random() * 100 < OFFTRACK.pct ? addJitter(la, lo, OFFTRACK.maxMeters) : [la, lo]
+    );
+}
+
+// ---------- Snap to roads dengan OSRM (tanpa API key) ----------
+async function fetchOSRMRoute(points: { lat: number; lng: number }[]): Promise<[number, number][]> {
+    if (points.length < 2) return points.map((p) => [p.lat, p.lng]);
+    const coords = points.map((p) => `${p.lng},${p.lat}`).join(";");
+    const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`OSRM: ${res.status}`);
+        const data = await res.json();
+        const coordsLngLat: [number, number][] = data?.routes?.[0]?.geometry?.coordinates || [];
+        return coordsLngLat.map(([lng, lat]) => [lat, lng]); // ke [lat,lng]
+    } catch {
+        // fallback: garis lurus antar waypoints
+        return points.map((p) => [p.lat, p.lng]);
+    }
+}
+
+async function buildPath(raw: Array<{ lat: number; lng: number }>): Promise<[number, number][]> {
+    let path = SNAP_TO_ROADS
+        ? await fetchOSRMRoute(raw)
+        : raw.map((p) => [p.lat, p.lng] as [number, number]);
+    // hanya untuk dummy: suntik off-track kecil
+    path = maybeOffTrack(path);
+    return path;
+}
+
+async function loadRoutes() {
     const L: any = (window as any).L;
     clearLayers();
+
     const from = filters.from ? new Date(`${filters.from}T00:00:00`) : undefined;
     const to = filters.to ? toEndOfDay(new Date(`${filters.to}T00:00:00`)) : undefined;
 
     const ids = filters.vehicle === "all" ? Object.keys(tracks) : [filters.vehicle];
     const allBounds: any[] = [];
 
-    ids.forEach((id) => {
-        const raw = tracks[id] || [];
-        const filtered = raw.filter((p) => {
+    for (const id of ids) {
+        const raw = (tracks[id] || []).filter((p) => {
             const t = new Date(p.ts);
             return (!from || t >= from) && (!to || t <= to);
         });
-        if (filtered.length < 2) return;
+        if (raw.length < 2) continue;
 
-        const latlngs = filtered.map((p) => [p.lat, p.lng]);
+        const latlngs: [number, number][] = await buildPath(raw);
+
         const poly = L.polyline(latlngs, { weight: 4, opacity: 0.9, color: colorFor(id) }).addTo(
             layerGroup
         );
@@ -169,20 +223,16 @@ function loadRoutes() {
 
         start.bindTooltip(`${labelFor(id)} — Start`);
         end.bindTooltip(`${labelFor(id)} — End`);
-        poly.bindPopup(`<strong>${labelFor(id)}</strong><br/>Points: ${filtered.length}`);
+        poly.bindPopup(`<strong>${labelFor(id)}</strong><br/>Points: ${latlngs.length}`);
 
         allBounds.push(poly.getBounds());
-    });
+    }
 
     if (allBounds.length) {
         let merged = allBounds[0];
         for (let i = 1; i < allBounds.length; i++) merged = merged.extend(allBounds[i]);
         map.fitBounds(merged.pad(0.2));
     }
-}
-
-function labelFor(id: string) {
-    return vehicles.find((v) => v.id === id)?.label || id;
 }
 
 async function initMap() {
@@ -193,7 +243,7 @@ async function initMap() {
         maxZoom: 19,
         attribution: "&copy; OpenStreetMap",
     }).addTo(map);
-    map.setView([-6.9175, 107.6191], 6);
+    map.setView([SITE.lat, SITE.lng], INITIAL_ZOOM);
     layerGroup = L.layerGroup().addTo(map);
 }
 
@@ -205,61 +255,53 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* .card => rounded-2xl border bg-white shadow-sm */
 .card {
     border-radius: 1rem;
-    border: 1px solid #e5e7eb; /* neutral-200 */
-    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    background-color: #fff;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
-
-/* .input => w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-400 transition */
 .input {
     width: 100%;
-    border-radius: 0.75rem; /* rounded-xl */
-    border: 1px solid #e5e7eb; /* neutral-200 */
-    background-color: #ffffff;
-    padding: 0.5rem 0.75rem; /* py-2 px-3 */
-    font-size: 0.875rem; /* text-sm */
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
     line-height: 1.25rem;
     outline: none;
-    transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease,
-        color 0.2s ease;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .input:focus {
-    border-color: #a3a3a3; /* neutral-400 */
-    box-shadow: 0 0 0 2px rgba(23, 23, 23, 0.1); /* ring-neutral-900/10 */
+    border-color: #a3a3a3;
+    box-shadow: 0 0 0 2px rgba(23, 23, 23, 0.1);
 }
-
-/* .btn-primary => inline-flex items-center justify-center rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-neutral-800 disabled:opacity-50 */
 .btn-primary {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 0.75rem;
-    background-color: #171717; /* neutral-900 */
-    padding: 0.5rem 1rem; /* py-2 px-4 */
-    font-size: 0.875rem; /* text-sm */
+    background: #171717;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
     line-height: 1.25rem;
-    font-weight: 500; /* font-medium */
-    color: #ffffff;
+    font-weight: 500;
+    color: #fff;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 .btn-primary:hover {
-    background-color: #262626;
-} /* neutral-800 */
+    background: #262626;
+}
 .btn-primary:disabled {
     opacity: 0.5;
     pointer-events: none;
 }
-
-/* .lbl => block text-sm text-neutral-700 mb-1 */
 .lbl {
     display: block;
-    font-size: 0.875rem; /* text-sm */
+    font-size: 0.875rem;
     line-height: 1.25rem;
-    color: #404040; /* neutral-700 */
-    margin-bottom: 0.25rem; /* mb-1 */
+    color: #404040;
+    margin-bottom: 0.25rem;
 }
 </style>

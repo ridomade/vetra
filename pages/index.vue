@@ -2,7 +2,10 @@
     <div class="page">
         <header class="topbar">
             <h1>Fleet Simulator – Leaflet + Nuxt 3</h1>
-            <p>Dummy data menampilkan beberapa kendaraan yang bergerak di sekitar Bandung.</p>
+            <p>
+                Dummy data menampilkan beberapa kendaraan yang bergerak di sekitar Pt. Bara Mega
+                Quantum.
+            </p>
         </header>
 
         <div class="layout">
@@ -59,18 +62,22 @@
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import "leaflet/dist/leaflet.css";
 
+// ---- Lokasi target: Pt. Bara Mega Quantum ----
+const SITE = { lat: -3.8447964, lng: 102.3431685 }; // dari URL yang kamu kirim
+const INITIAL_ZOOM = 14; // sesuaikan bila perlu
+
 // --- State dasar ---
 const running = ref(true);
 const speedMultiplier = ref(1);
 const mapRef = ref(null);
 
-// Dummy kendaraan di sekitar Bandung
+// Dummy kendaraan di sekitar lokasi SITE
 const vehicles = ref([
     {
         id: "A",
         name: "Truck A",
-        lat: -6.903,
-        lng: 107.611,
+        lat: -3.844,
+        lng: 102.3375,
         heading: 25,
         speedKmh: 28,
         color: "#2563eb",
@@ -78,8 +85,8 @@ const vehicles = ref([
     {
         id: "B",
         name: "Excavator B",
-        lat: -6.915,
-        lng: 107.615,
+        lat: -3.8465,
+        lng: 102.345,
         heading: 110,
         speedKmh: 18,
         color: "#16a34a",
@@ -87,8 +94,8 @@ const vehicles = ref([
     {
         id: "C",
         name: "Dozer C",
-        lat: -6.91,
-        lng: 107.63,
+        lat: -3.8425,
+        lng: 102.349,
         heading: 320,
         speedKmh: 22,
         color: "#ca8a04",
@@ -96,8 +103,8 @@ const vehicles = ref([
     {
         id: "D",
         name: "Pickup D",
-        lat: -6.897,
-        lng: 107.622,
+        lat: -3.848,
+        lng: 102.34,
         heading: 200,
         speedKmh: 40,
         color: "#ef4444",
@@ -105,8 +112,8 @@ const vehicles = ref([
     {
         id: "E",
         name: "Loader E",
-        lat: -6.907,
-        lng: 107.602,
+        lat: -3.8415,
+        lng: 102.3435,
         heading: 70,
         speedKmh: 26,
         color: "#9333ea",
@@ -120,22 +127,23 @@ const tickMs = 500; // interval update posisi (ms)
 const markers = new Map(); // id -> marker
 const trails = new Map(); // id -> polyline
 
-// Area simulasi (BBox Bandung kira-kira)
+// Area simulasi: bbox di sekitar SITE (≈ ±6 km)
+const BBOX_PAD = 0.06;
 const bbox = {
-    minLat: -6.96,
-    maxLat: -6.86,
-    minLng: 107.55,
-    maxLng: 107.68,
+    minLat: SITE.lat - BBOX_PAD,
+    maxLat: SITE.lat + BBOX_PAD,
+    minLng: SITE.lng - BBOX_PAD,
+    maxLng: SITE.lng + BBOX_PAD,
 };
 
 onMounted(async () => {
     // Import dinamis agar aman untuk SSR
     const leaflet = await import("leaflet");
-    L = leaflet;
+    L = leaflet.default ?? leaflet;
 
     // Inisialisasi map
     map = L.map(mapRef.value, { preferCanvas: true, zoomControl: true });
-    map.setView([-6.905, 107.613], 13);
+    map.setView([SITE.lat, SITE.lng], INITIAL_ZOOM);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "&copy; OpenStreetMap contributors",
@@ -176,11 +184,8 @@ function stop() {
 
 function toggleRun() {
     running.value = !running.value;
-    if (running.value) {
-        start();
-    } else {
-        stop();
-    }
+    if (running.value) start();
+    else stop();
 }
 
 function randomizeHeadings() {
@@ -188,13 +193,12 @@ function randomizeHeadings() {
 }
 
 function resetPositions() {
-    // Reset ke posisi awal sederhana (sedikit geser agar terlihat perubahan)
     const base = [
-        [-6.903, 107.611],
-        [-6.915, 107.615],
-        [-6.91, 107.63],
-        [-6.897, 107.622],
-        [-6.907, 107.602],
+        [-3.844, 102.3375],
+        [-3.8465, 102.345],
+        [-3.8425, 102.349],
+        [-3.848, 102.34],
+        [-3.8415, 102.3435],
     ];
     vehicles.value.forEach((v, i) => {
         v.lat = base[i][0];
@@ -206,7 +210,7 @@ function resetPositions() {
 function focusVehicle(id) {
     const v = vehicles.value.find((x) => x.id === id);
     if (!v || !map) return;
-    map.setView([v.lat, v.lng], Math.max(map.getZoom(), 15), { animate: true });
+    map.setView([v.lat, v.lng], Math.max(map.getZoom(), 16), { animate: true });
 }
 
 function tick() {
@@ -219,7 +223,7 @@ function tick() {
             m.setLatLng([v.lat, v.lng]);
             m.setIcon(makeArrowIcon(v.color, v.heading));
         }
-        // Update trail (hanya simpan beberapa titik terakhir)
+        // Update trail (simpan beberapa titik terakhir)
         const t = trails.get(v.id);
         if (t) {
             const latlngs = t.getLatLngs();
@@ -244,7 +248,7 @@ function advancePosition(v, hours) {
     v.lat += dNorth / metersPerDegLat;
     v.lng += dEast / metersPerDegLng;
 
-    // Jika keluar area, "pantulkan" arah
+    // Jika keluar area, “pantulkan” arah
     if (v.lat < bbox.minLat || v.lat > bbox.maxLat || v.lng < bbox.minLng || v.lng > bbox.maxLng) {
         v.heading = (v.heading + 180) % 360;
     }
@@ -278,7 +282,7 @@ function makeArrowIcon(color, deg) {
 }
 .topbar {
     padding: 1rem 1.25rem;
-    background: #0f172a; /* slate-900 */
+    background: #0f172a;
     color: white;
 }
 .topbar h1 {
@@ -297,7 +301,6 @@ function makeArrowIcon(color, deg) {
     gap: 0.75rem;
     padding: 0.75rem;
 }
-
 .map {
     width: 100%;
     height: calc(100vh - 110px);
@@ -305,7 +308,6 @@ function makeArrowIcon(color, deg) {
     overflow: hidden;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
-
 .panel {
     background: white;
     border-radius: 12px;
@@ -323,7 +325,7 @@ function makeArrowIcon(color, deg) {
     flex-wrap: wrap;
 }
 .btn {
-    background: #111827; /* gray-900 */
+    background: #111827;
     color: white;
     border: none;
     padding: 0.5rem 0.75rem;
@@ -339,7 +341,6 @@ function makeArrowIcon(color, deg) {
     display: grid;
     gap: 0.25rem;
 }
-
 .list {
     list-style: none;
     margin: 0;
@@ -375,14 +376,6 @@ function makeArrowIcon(color, deg) {
     border-radius: 6px;
     background: #e5e7eb;
     border: none;
-    cursor: pointer;
-}
-
-.hint {
-    font-size: 0.9rem;
-    color: #4b5563;
-}
-.hint summary {
     cursor: pointer;
 }
 

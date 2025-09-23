@@ -32,7 +32,7 @@
                         <ul class="text-sm">
                             <li>
                                 <NuxtLink
-                                    to="/dashboard"
+                                    to="/dashboard/load-unload"
                                     class="block px-12 py-2 hover:bg-white/10"
                                     @click="$emit('select')"
                                 >
