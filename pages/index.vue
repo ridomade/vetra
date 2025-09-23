@@ -13,31 +13,8 @@
                 <div id="map" ref="mapRef" class="map"></div>
             </ClientOnly>
 
+            <!-- Panel hanya tampilkan daftar kendaraan (tanpa kontrol) -->
             <aside class="panel">
-                <div class="controls">
-                    <button class="btn" @click="toggleRun">
-                        {{ running ? "⏸️ Jeda" : "▶️ Lanjut" }}
-                    </button>
-                    <button class="btn" @click="randomizeHeadings" :disabled="!running">
-                        🔀 Acak Arah
-                    </button>
-                    <button class="btn" @click="resetPositions">♻️ Reset Posisi</button>
-                </div>
-
-                <div class="control">
-                    <label for="speed"
-                        >Kecepatan simulasi: <b>{{ speedMultiplier.toFixed(1) }}×</b></label
-                    >
-                    <input
-                        id="speed"
-                        type="range"
-                        min="0.1"
-                        max="5"
-                        step="0.1"
-                        v-model.number="speedMultiplier"
-                    />
-                </div>
-
                 <ul class="list">
                     <li v-for="v in vehicles" :key="v.id" class="item">
                         <div class="badge" :style="{ background: v.color }"></div>
@@ -47,9 +24,6 @@
                                 {{ v.speedKmh }} km/h · heading {{ Math.round(v.heading) }}°
                             </div>
                             <div class="sub">{{ v.lat.toFixed(5) }}, {{ v.lng.toFixed(5) }}</div>
-                        </div>
-                        <div class="actions">
-                            <button class="mini" @click="focusVehicle(v.id)">🎯 Fokus</button>
                         </div>
                     </li>
                 </ul>
@@ -62,16 +36,12 @@
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import "leaflet/dist/leaflet.css";
 
-// ---- Lokasi target: Pt. Bara Mega Quantum ----
-const SITE = { lat: -3.8447964, lng: 102.3431685 }; // dari URL yang kamu kirim
-const INITIAL_ZOOM = 14; // sesuaikan bila perlu
+/* Lokasi target */
+const SITE = { lat: -3.8447964, lng: 102.3431685 };
+const INITIAL_ZOOM = 14;
 
-// --- State dasar ---
-const running = ref(true);
-const speedMultiplier = ref(1);
+/* Simulasi berjalan otomatis (tanpa kontrol) */
 const mapRef = ref(null);
-
-// Dummy kendaraan di sekitar lokasi SITE
 const vehicles = ref([
     {
         id: "A",
@@ -120,14 +90,15 @@ const vehicles = ref([
     },
 ]);
 
-let L; // namespace Leaflet (diinisialisasi saat client)
-let map;
-let timerId;
-const tickMs = 500; // interval update posisi (ms)
+let L; // Leaflet namespace
+let map; // Leaflet map instance
+let timerId; // interval id
+const tickMs = 500; // interval update posisi
+const SIM_SPEED = 1; // kecepatan simulasi tetap (tidak bisa diubah)
 const markers = new Map(); // id -> marker
 const trails = new Map(); // id -> polyline
 
-// Area simulasi: bbox di sekitar SITE (≈ ±6 km)
+// Area simulasi (≈ ±6 km)
 const BBOX_PAD = 0.06;
 const bbox = {
     minLat: SITE.lat - BBOX_PAD,
@@ -137,11 +108,10 @@ const bbox = {
 };
 
 onMounted(async () => {
-    // Import dinamis agar aman untuk SSR
     const leaflet = await import("leaflet");
     L = leaflet.default ?? leaflet;
 
-    // Inisialisasi map
+    // Init map
     map = L.map(mapRef.value, { preferCanvas: true, zoomControl: true });
     map.setView([SITE.lat, SITE.lng], INITIAL_ZOOM);
 
@@ -150,7 +120,7 @@ onMounted(async () => {
         maxZoom: 19,
     }).addTo(map);
 
-    // Tambah marker & trail untuk setiap kendaraan
+    // Markers & trails
     for (const v of vehicles.value) {
         const marker = L.marker([v.lat, v.lng], { icon: makeArrowIcon(v.color, v.heading) });
         marker.addTo(map);
@@ -166,64 +136,27 @@ onMounted(async () => {
         trails.set(v.id, trail);
     }
 
-    // Mulai loop simulasi
-    start();
+    // Mulai simulasi (tanpa kontrol)
+    timerId = setInterval(tick, tickMs);
 });
 
-onBeforeUnmount(() => stop());
-
-function start() {
-    if (timerId) return;
-    timerId = setInterval(tick, tickMs);
-}
-
-function stop() {
+onBeforeUnmount(() => {
     clearInterval(timerId);
     timerId = null;
-}
-
-function toggleRun() {
-    running.value = !running.value;
-    if (running.value) start();
-    else stop();
-}
-
-function randomizeHeadings() {
-    for (const v of vehicles.value) v.heading = Math.random() * 360;
-}
-
-function resetPositions() {
-    const base = [
-        [-3.844, 102.3375],
-        [-3.8465, 102.345],
-        [-3.8425, 102.349],
-        [-3.848, 102.34],
-        [-3.8415, 102.3435],
-    ];
-    vehicles.value.forEach((v, i) => {
-        v.lat = base[i][0];
-        v.lng = base[i][1];
-        v.heading = (i * 73) % 360;
-    });
-}
-
-function focusVehicle(id) {
-    const v = vehicles.value.find((x) => x.id === id);
-    if (!v || !map) return;
-    map.setView([v.lat, v.lng], Math.max(map.getZoom(), 16), { animate: true });
-}
+});
 
 function tick() {
-    const hours = (tickMs / 3600000) * speedMultiplier.value;
+    const hours = (tickMs / 3600000) * SIM_SPEED;
     for (const v of vehicles.value) {
         advancePosition(v, hours);
+
         // Update marker
         const m = markers.get(v.id);
         if (m) {
             m.setLatLng([v.lat, v.lng]);
             m.setIcon(makeArrowIcon(v.color, v.heading));
         }
-        // Update trail (simpan beberapa titik terakhir)
+        // Update jejak
         const t = trails.get(v.id);
         if (t) {
             const latlngs = t.getLatLngs();
@@ -235,7 +168,6 @@ function tick() {
 }
 
 function advancePosition(v, hours) {
-    // Konversi ke meter
     const distanceM = v.speedKmh * 1000 * hours;
     const rad = (v.heading * Math.PI) / 180;
     const dNorth = Math.cos(rad) * distanceM;
@@ -244,18 +176,16 @@ function advancePosition(v, hours) {
     const metersPerDegLat = 111_320;
     const metersPerDegLng = 111_320 * Math.cos((v.lat * Math.PI) / 180);
 
-    // Update koordinat
     v.lat += dNorth / metersPerDegLat;
     v.lng += dEast / metersPerDegLng;
 
-    // Jika keluar area, “pantulkan” arah
+    // Pantulkan jika keluar area
     if (v.lat < bbox.minLat || v.lat > bbox.maxLat || v.lng < bbox.minLng || v.lng > bbox.maxLng) {
         v.heading = (v.heading + 180) % 360;
     }
 }
 
 function makeArrowIcon(color, deg) {
-    // Icon berbasis SVG (divIcon) yang bisa diputar tanpa plugin tambahan
     const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
       <g transform="rotate(${deg} 12 12)">
@@ -319,28 +249,7 @@ function makeArrowIcon(color, deg) {
     height: calc(100vh - 110px);
 }
 
-.controls {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-.btn {
-    background: #111827;
-    color: white;
-    border: none;
-    padding: 0.5rem 0.75rem;
-    border-radius: 8px;
-    cursor: pointer;
-}
-.btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.control {
-    display: grid;
-    gap: 0.25rem;
-}
+/* List kendaraan (read-only) */
 .list {
     list-style: none;
     margin: 0;
@@ -349,7 +258,7 @@ function makeArrowIcon(color, deg) {
 }
 .item {
     display: grid;
-    grid-template-columns: 14px 1fr auto;
+    grid-template-columns: 14px 1fr; /* tanpa kolom tombol */
     gap: 0.5rem;
     align-items: center;
     padding: 0.4rem;
@@ -370,13 +279,6 @@ function makeArrowIcon(color, deg) {
 .meta .sub {
     font-size: 0.8rem;
     color: #6b7280;
-}
-.mini {
-    padding: 0.3rem 0.5rem;
-    border-radius: 6px;
-    background: #e5e7eb;
-    border: none;
-    cursor: pointer;
 }
 
 /* Responsif */

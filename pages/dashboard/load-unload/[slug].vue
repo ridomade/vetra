@@ -4,12 +4,12 @@
             <!-- Breadcrumb + Back -->
             <div class="flex items-center justify-between gap-3">
                 <nav class="text-sm text-neutral-500">
-                    <NuxtLink to="/dashboard" class="hover:underline">Dashboard</NuxtLink>
+                    <NuxtLink to="/" class="hover:underline">Dashboard</NuxtLink>
                     <span class="mx-1">/</span>
                     <span class="text-neutral-900">Load &amp; Unload Detail</span>
                 </nav>
                 <NuxtLink
-                    to="/dashboard"
+                    to="/dashboard/load-unload"
                     class="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm hover:bg-neutral-50"
                 >
                     ← Kembali
@@ -101,7 +101,7 @@ const toSlug = (s) =>
 const meta = computed(() => {
     const found = master.find((m) => toSlug(m.name) === slug.value);
     if (!found) {
-        router.replace("/dashboard");
+        router.replace("");
         return { name: "-", driver: "-" };
     }
     return found;

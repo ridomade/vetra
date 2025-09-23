@@ -241,38 +241,15 @@
             <!-- Reports -->
             <div
                 class="relative group flex flex-col items-center justify-center h-12 w-24 cursor-pointer transition-colors duration-300 rounded-md"
-                :class="isActive('/vehicle') ? 'bg-orange-500 text-white' : 'hover:bg-orange-500'"
+                :class="isActive('/report') ? 'bg-orange-500 text-white' : 'hover:bg-orange-500'"
             >
                 <NuxtLink
-                    to="/vehicle"
+                    to="/report"
                     class="flex flex-col items-center justify-center w-full h-full"
                 >
                     <img src="/assets/img/icon-svg/report.svg" class="w-[30px] h-5" alt="vehicle" />
                     <p class="text-sm">Reports</p>
                 </NuxtLink>
-
-                <!-- Sub (hover) -->
-                <div
-                    class="absolute top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-neutral-900 rounded-lg shadow-lg border border-white/10 backdrop-blur-md w-44 pointer-events-none group-hover:pointer-events-auto"
-                >
-                    <ul class="text-sm text-white py-1">
-                        <li>
-                            <NuxtLink to="/vehicle" class="block px-4 py-2 hover:bg-white/10"
-                                >Schedule</NuxtLink
-                            >
-                        </li>
-                        <li>
-                            <NuxtLink to="/vehicle/add" class="block px-4 py-2 hover:bg-white/10"
-                                >Load & Unload</NuxtLink
-                            >
-                        </li>
-                        <li>
-                            <NuxtLink to="/vehicle/add" class="block px-4 py-2 hover:bg-white/10"
-                                >Fuel</NuxtLink
-                            >
-                        </li>
-                    </ul>
-                </div>
             </div>
         </div>
         <!-- USER SETTING -->

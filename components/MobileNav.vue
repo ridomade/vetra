@@ -439,33 +439,43 @@
                         <ul class="text-sm">
                             <li>
                                 <NuxtLink
-                                    to="/reports/schedule"
+                                    to="/report"
                                     class="block px-12 py-2 hover:bg-white/10"
                                     @click="$emit('select')"
                                 >
-                                    Schedule
-                                </NuxtLink>
-                            </li>
-                            <li>
-                                <NuxtLink
-                                    to="/reports/load-unload"
-                                    class="block px-12 py-2 hover:bg-white/10"
-                                    @click="$emit('select')"
-                                >
-                                    Load & Unload
-                                </NuxtLink>
-                            </li>
-                            <li>
-                                <NuxtLink
-                                    to="/reports/fuel"
-                                    class="block px-12 py-2 hover:bg-white/10"
-                                    @click="$emit('select')"
-                                >
-                                    Fuel
+                                    Submit Report
                                 </NuxtLink>
                             </li>
                         </ul>
                     </div>
+                </li>
+
+                <!-- Setting -->
+                <li>
+                    <NuxtLink to="/setting">
+                        <button
+                            class="w-full flex items-center justify-between px-4 py-3 hover:bg-white/10"
+                            @click="$emit('toggle-sub', 'setting')"
+                            :aria-expanded="openKey === 'setting' ? 'true' : 'false'"
+                            aria-controls="sub-setting"
+                        >
+                            <span class="flex items-center gap-2">
+                                <!-- Pastikan nama file icon sesuai case di filesystem (report.svg vs Report.svg) -->
+                                <img
+                                    src="/assets/img/icon-svg/setting.svg"
+                                    class="w-[30px] h-5"
+                                    alt="reports"
+                                />
+                                <span>Settings</span>
+                            </span>
+                            <span>{{ openKey === "setting" ? "−" : "+" }}</span>
+                        </button>
+                    </NuxtLink>
+                    <div
+                        id="sub-reports"
+                        class="overflow-hidden transition-all duration-300"
+                        :class="openKey === 'setting' ? 'max-h-72' : 'max-h-0'"
+                    ></div>
                 </li>
             </ul>
         </nav>

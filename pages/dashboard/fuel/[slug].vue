@@ -5,11 +5,9 @@
             <!-- Breadcrumb + Title -->
             <div class="flex items-center justify-between gap-3">
                 <nav class="text-sm text-neutral-500">
-                    <NuxtLink to="/dashboard" class="hover:underline">Dashboard</NuxtLink>
+                    <NuxtLink to="/" class="hover:underline">Dashboard</NuxtLink>
                     <span class="mx-1">/</span>
-                    <NuxtLink to="/dashboard/fuel" class="hover:underline">Fuel</NuxtLink>
-                    <span class="mx-1">/</span>
-                    <span class="text-neutral-900">Detail</span>
+                    <span>Fuel</span>
                 </nav>
                 <NuxtLink
                     to="/dashboard/fuel"
@@ -106,7 +104,7 @@ const meta = computed(() => {
     const found = master.find((m) => toSlug(m.name) === slug.value);
     if (!found) {
         // jika slug tak dikenal, balik ke daftar fuel
-        router.replace("/dashboard/fuel");
+        router.replace("/");
         return { name: "-", capacity: 0, driver: "-" };
     }
     return found;
