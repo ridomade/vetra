@@ -1,3 +1,4 @@
+<!-- pages/dashboard/load-unload.vue -->
 <template>
     <div
         class="p-4 md:p-6 space-y-6 bg-gradient-to-b from-neutral-50 to-neutral-100 min-h-[calc(100dvh-4rem)]"
@@ -6,10 +7,21 @@
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
                 <h1 class="text-2xl font-semibold tracking-tight">Load/Unload Dashboard</h1>
-                <p class="text-sm text-neutral-500">Dummy data.</p>
             </div>
 
             <div class="flex flex-wrap gap-2">
+                <!-- Customer Filter -->
+                <select
+                    v-model="selectedCustomerId"
+                    class="px-3 py-1.5 text-sm rounded-xl border bg-white shadow-sm"
+                    title="Filter by customer"
+                >
+                    <option value="all">All Customers</option>
+                    <option v-for="c in customers" :key="c.id" :value="c.id" :title="c.address">
+                        {{ c.name }}
+                    </option>
+                </select>
+
                 <div class="inline-flex rounded-xl border bg-white shadow-sm overflow-hidden">
                     <button
                         class="px-3 py-1.5 text-sm transition"
@@ -39,19 +51,19 @@
         <div class="grid gap-3 md:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
             <div class="bg-white/80 backdrop-blur rounded-2xl border shadow-sm p-4">
                 <p class="text-xs text-neutral-500">Total Vehicle</p>
-                <p class="text-xl font-semibold">{{ totalVehicle }}</p>
+                <p class="text-xl font-semibold">{{ statTotalVehicle }}</p>
             </div>
             <div class="bg-white/80 backdrop-blur rounded-2xl border shadow-sm p-4">
                 <p class="text-xs text-neutral-500">Total Loads (Kg)</p>
-                <p class="text-xl font-semibold">{{ totalLoads }}</p>
+                <p class="text-xl font-semibold">{{ statTotalLoads }}</p>
             </div>
             <div class="bg-white/80 backdrop-blur rounded-2xl border shadow-sm p-4">
                 <p class="text-xs text-neutral-500">Total Unloads (Kg)</p>
-                <p class="text-xl font-semibold">{{ totalUnloads }}</p>
+                <p class="text-xl font-semibold">{{ statTotalUnloads }}</p>
             </div>
             <div class="bg-white/80 backdrop-blur rounded-2xl border shadow-sm p-4">
                 <p class="text-xs text-neutral-500">Avg Completion</p>
-                <p class="text-xl font-semibold">{{ avgCompletion.toFixed(1) }}%</p>
+                <p class="text-xl font-semibold">{{ statAvgCompletion.toFixed(1) }}%</p>
             </div>
         </div>
 
@@ -95,6 +107,9 @@
         <div class="rounded-2xl border shadow-sm bg-white overflow-hidden">
             <div class="px-4 py-3 border-b bg-neutral-50">
                 <h3 class="font-medium">Ringkasan</h3>
+                <p class="text-xs text-neutral-500 mt-1" v-if="selectedCustomerId !== 'all'">
+                    Customer: <span class="font-medium">{{ currentCustomerName }}</span>
+                </p>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full text-sm">
@@ -158,15 +173,14 @@
                                     <span class="text-[10px]">{{ sortIcon("completion") }}</span>
                                 </button>
                             </th>
-                            <!-- ... kolom lain ... -->
-                            <th class="py-2 px-4 w-14">Detail</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr
-                            v-for="v in vehiclesSorted"
-                            :key="v.name"
+                            v-for="v in rowsSorted"
+                            :key="v._key"
                             class="border-b last:border-0 hover:bg-neutral-50/70 transition"
+                            @click="goDetail(v)"
                         >
                             <td class="py-2 px-4 font-medium">{{ v.name }}</td>
                             <td class="py-2 px-4">{{ v.driver }}</td>
@@ -200,22 +214,8 @@
                                     {{ v.completion.toFixed(1) }}%
                                 </span>
                             </td>
-                            <td class="py-2 px-4">
-                                <button
-                                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-neutral-100"
-                                    title="Lihat detail"
-                                    @click="goDetail(v)"
-                                >
-                                    <!-- ikon "chart" -->
-                                    <svg viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor">
-                                        <path
-                                            d="M3 3h2v18H3V3zm16 8h2v10h-2V11zM11 7h2v14h-2V7zM7 13h2v8H7v-8zm8-10h2v18h-2V3z"
-                                        />
-                                    </svg>
-                                </button>
-                            </td>
                         </tr>
-                        <tr v-if="vehiclesSorted.length === 0">
+                        <tr v-if="rowsSorted.length === 0">
                             <td colspan="6" class="py-6 text-center text-neutral-500">No data.</td>
                         </tr>
                     </tbody>
@@ -229,63 +229,111 @@
 import { ref, onMounted, onBeforeUnmount, computed, watch } from "vue";
 import Chart from "chart.js/auto";
 import { useRouter } from "vue-router";
-const router = useRouter();
 
+const router = useRouter();
 const toSlug = (s) =>
     String(s)
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");
-
 function goDetail(v) {
     router.push(`/dashboard/load-unload/${toSlug(v.name)}`);
 }
 
-/**
- * Dummy Data — untuk load/unload per kendaraan (harian atau periodik).
- * Angka bersifat contoh. Silakan ganti dengan data aktual Anda.
- */
-const vehicles = ref([
-    { name: "Truck A", loads: 12, unloads: 10, driver: "Budi" },
-    { name: "Truck B", loads: 16, unloads: 14, driver: "Andi" },
-    { name: "Excavator C", loads: 9, unloads: 7, driver: "Susi" },
-    { name: "Dozer D", loads: 11, unloads: 11, driver: "Rina" },
-    { name: "Pickup E", loads: 7, unloads: 5, driver: "Joko" },
-]);
+/* ========= sumber data ========= */
+const { customers, loadRows } = useFleetDb(); // angka loads/unloads (bisa 0)
+const { schedules } = useScheduleDb(); // master daftar kendaraan/driver/customer dari jadwal
 
-// Controls
-const showPercent = ref(false); // disediakan jika nanti ingin menambah tampilan %
+/* Helpers */
+const customerIdByName = (name) => customers.value.find((c) => c.name === name)?.id ?? null;
+
+/* Controls */
+const showPercent = ref(false);
 const sortBy = ref("name");
-const sortDir = ref("asc"); // 'asc' | 'desc'
+const sortDir = ref("asc");
+const selectedCustomerId = ref("all"); // 'all' | number
 
-// Helper untuk header class & icon
+/* Customer name active */
+const currentCustomerName = computed(() => {
+    if (selectedCustomerId.value === "all") return "All Customers";
+    const c = customers.value.find((x) => x.id === Number(selectedCustomerId.value));
+    return c?.name ?? "Unknown";
+});
+
+/* ===== Master rows berbasis Schedule, lalu gabungkan dengan loadRows ===== */
+const masterRows = computed(() => {
+    const byVeh = new Map();
+
+    // 1) Masukkan semua vehicle yg ada di schedules (jadi pasti muncul di dashboard)
+    for (const s of schedules.value) {
+        const key = s.vehicle || "-";
+        if (!key) continue;
+
+        const existed = byVeh.get(key) || {
+            _key: key,
+            name: key,
+            driver: s.driver || "-",
+            id_customer: customerIdByName(s.customer),
+            loads: 0,
+            unloads: 0,
+            backlog: 0,
+            completion: 0,
+        };
+
+        // preferkan baris schedule yang lebih "baru"
+        const score = (r) => Number(new Date(r.endDate || r.startDate || 0));
+        const takeNewer = !existed._src || score(s) >= (existed._srcScore || 0);
+        if (takeNewer) {
+            existed.driver = s.driver || existed.driver || "-";
+            existed.id_customer = customerIdByName(s.customer);
+            existed._src = "schedule";
+            existed._srcScore = score(s);
+        }
+
+        byVeh.set(key, existed);
+    }
+
+    // 2) Akumulasi load/unload dari composable loadRows berdasarkan nama kendaraan
+    for (const r of loadRows.value) {
+        const key = r.name || "-";
+        if (!byVeh.has(key)) continue; // patokan schedule; kalau belum ada di jadwal, skip
+        const row = byVeh.get(key);
+        row.loads += Number(r.loads || 0);
+        row.unloads += Number(r.unloads || 0);
+    }
+
+    // 3) Hitung backlog & completion
+    for (const row of byVeh.values()) {
+        row.backlog = Math.max(0, (row.loads || 0) - (row.unloads || 0));
+        row.completion = (row.loads || 0) > 0 ? ((row.unloads || 0) / (row.loads || 1)) * 100 : 0;
+    }
+
+    return Array.from(byVeh.values());
+});
+
+/* Filter by customer */
+const rowsFiltered = computed(() => {
+    if (selectedCustomerId.value === "all") return masterRows.value;
+    const cid = Number(selectedCustomerId.value);
+    return masterRows.value.filter((r) => Number(r.id_customer) === cid);
+});
+
+/* Sorting helpers */
 const thClass = (key) =>
     (sortBy.value === key ? "text-neutral-900" : "text-neutral-500 hover:text-neutral-900") +
     " transition-colors";
-const sortIcon = (key) => (sortBy.value !== key ? "" : sortDir.value === "asc" ? "▲" : "▼");
-const setSort = (key) => {
+function sortIcon(key) {
+    return sortBy.value !== key ? "" : sortDir.value === "asc" ? "▲" : "▼";
+}
+function setSort(key) {
     if (sortBy.value === key) {
         sortDir.value = sortDir.value === "asc" ? "desc" : "asc";
     } else {
         sortBy.value = key;
-        // default arah awal: asc untuk teks, desc untuk angka
         sortDir.value = ["name", "driver"].includes(key) ? "asc" : "desc";
     }
-};
-
-// Ambil & sanitasi nilai data
-const vehiclesComputed = computed(() =>
-    vehicles.value.map((v) => {
-        const loads = Math.max(0, v.loads ?? 0);
-        const unloads = Math.max(0, v.unloads ?? 0);
-        const backlog = loads - unloads; // positif = masih ada beban yang belum di-unload
-        const completion = loads > 0 ? Math.min(100, (unloads / loads) * 100) : 0;
-        return { ...v, loads, unloads, backlog, completion };
-    })
-);
-
-// Sorting
-const valueByKey = (row, key) => {
+}
+function valueByKey(row, key) {
     switch (key) {
         case "name":
             return row.name ?? "";
@@ -302,10 +350,10 @@ const valueByKey = (row, key) => {
         default:
             return row.name ?? "";
     }
-};
+}
 
-const vehiclesSorted = computed(() => {
-    const arr = [...vehiclesComputed.value];
+const rowsSorted = computed(() => {
+    const arr = [...rowsFiltered.value];
     const key = sortBy.value;
     const dir = sortDir.value === "asc" ? 1 : -1;
     return arr.sort((a, b) => {
@@ -318,26 +366,29 @@ const vehiclesSorted = computed(() => {
     });
 });
 
-// Stats
-const totalVehicle = computed(() => vehiclesComputed.value.length);
-const totalLoads = computed(() => vehiclesComputed.value.reduce((s, v) => s + v.loads, 0));
-const totalUnloads = computed(() => vehiclesComputed.value.reduce((s, v) => s + v.unloads, 0));
-const avgCompletion = computed(() => {
-    const list = vehiclesComputed.value;
-    return list.length ? list.reduce((s, v) => s + v.completion, 0) / list.length : 0;
+/* Stats (respect filter) */
+const statTotalVehicle = computed(() => rowsFiltered.value.length);
+const statTotalLoads = computed(() => rowsFiltered.value.reduce((s, v) => s + (v.loads || 0), 0));
+const statTotalUnloads = computed(() =>
+    rowsFiltered.value.reduce((s, v) => s + (v.unloads || 0), 0)
+);
+const statAvgCompletion = computed(() => {
+    const list = rowsFiltered.value;
+    return list.length ? list.reduce((s, v) => s + (v.completion || 0), 0) / list.length : 0;
 });
 
-// Chart
+/* Chart */
 const chartEl = ref(null);
 let chartInstance = null;
 
 function buildChart() {
+    if (!chartEl.value) return;
     const ctx = chartEl.value.getContext("2d");
 
-    const labels = vehiclesSorted.value.map((v) => v.name);
-    const loadsData = vehiclesSorted.value.map((v) => v.loads);
-    const unloadsData = vehiclesSorted.value.map((v) => v.unloads);
-    const completionData = vehiclesSorted.value.map((v) => Number(v.completion.toFixed(1)));
+    const labels = rowsSorted.value.map((v) => v.name);
+    const loadsData = rowsSorted.value.map((v) => v.loads);
+    const unloadsData = rowsSorted.value.map((v) => v.unloads);
+    const completionData = rowsSorted.value.map((v) => Number(v.completion.toFixed(1)));
 
     const maxCount = Math.max(...loadsData, ...unloadsData, 10) || 10;
 
@@ -349,7 +400,7 @@ function buildChart() {
                     type: "bar",
                     label: "Loads",
                     data: loadsData,
-                    backgroundColor: "rgba(59, 130, 246, 0.7)", // biru
+                    backgroundColor: "rgba(59, 130, 246, 0.7)", // blue
                     borderWidth: 0,
                     borderRadius: { topLeft: 8, topRight: 8 },
                     order: 2,
@@ -358,11 +409,23 @@ function buildChart() {
                     type: "bar",
                     label: "Unloads",
                     data: unloadsData,
-                    backgroundColor: "rgba(16, 185, 129, 0.8)", // hijau
+                    backgroundColor: "rgba(16, 185, 129, 0.8)", // green
                     borderWidth: 0,
                     borderRadius: { topLeft: 8, topRight: 8 },
                     order: 2,
                 },
+                // Garis completion (opsional aktifkan)
+                // {
+                //   type: "line",
+                //   label: "Completion %",
+                //   data: completionData,
+                //   yAxisID: "y1",
+                //   pointRadius: 2,
+                //   tension: 0.25,
+                //   borderColor: "rgba(245, 158, 11, 0.9)",
+                //   borderWidth: 2,
+                //   order: 1,
+                // },
             ],
         },
         options: {
@@ -377,26 +440,23 @@ function buildChart() {
                     callbacks: {
                         title: (items) => {
                             const idx = items[0].dataIndex;
-                            const row = vehiclesSorted.value[idx];
+                            const row = rowsSorted.value[idx];
                             return `${row.name} (Driver: ${row?.driver ?? "-"})`;
                         },
                         footer: (items) => {
                             const idx = items[0].dataIndex;
-                            const row = vehiclesSorted.value[idx];
+                            const row = rowsSorted.value[idx];
                             return `Completion: ${row.completion.toFixed(1)}%`;
                         },
                     },
                 },
             },
             scales: {
-                x: {
-                    grid: { display: false },
-                    ticks: { maxRotation: 0, autoSkip: true },
-                },
+                x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true } },
                 y: {
                     beginAtZero: true,
                     suggestedMax: Math.ceil(maxCount * 1.1),
-                    title: { display: true, text: "Count" },
+                    title: { display: true, text: "Count (Kg)" },
                     grid: { color: "rgba(0,0,0,0.05)" },
                 },
                 y1: {
@@ -423,7 +483,9 @@ function renewChart() {
 }
 
 onMounted(() => buildChart());
-watch([sortBy, sortDir, vehiclesComputed], () => renewChart(), { deep: true });
+watch([sortBy, sortDir, selectedCustomerId, schedules, loadRows], () => renewChart(), {
+    deep: true,
+});
 onBeforeUnmount(() => {
     if (chartInstance) chartInstance.destroy();
 });

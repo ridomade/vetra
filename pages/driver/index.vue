@@ -35,7 +35,7 @@
 
                 <div class="overflow-x-auto">
                     <table class="min-w-full w-full text-sm">
-                        <thead class="bg-neutral-50 text-neutral-700">
+                        <thead class="bg-neutral-50 text-neutral-700 text-left">
                             <tr>
                                 <th class="th w-16">S.No</th>
                                 <th class="th cursor-pointer" @click="toggleSort('name')">
@@ -262,34 +262,29 @@
     </div>
 </template>
 
-<script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue";
+<script setup>
+import { ref, reactive, computed } from "vue";
+/* ====== Ambil state & API dari dummy DB ====== */
+const {
+    drivers, // reactive array of drivers
+    createDriver,
+    updateDriver,
+    removeDriver,
+    toggleDriverStatus,
+    driverStatuses, // ["Active", "Inactive"]
+} = useDriversDb();
 
-const formRef = ref<HTMLElement | null>(null);
+/* ====== UI State ====== */
+const formRef = ref(null);
 const search = ref("");
 const pageSize = 10;
 const page = ref(1);
 
-interface DriverRow {
-    id: number;
-    name: string;
-    mobile: string;
-    age: number;
-    licenseNo: string;
-    licenseExpDate: string;
-    dateOfJoining: string;
-    address: string;
-    experience: number;
-    notes?: string;
-    status: "Active" | "Inactive";
-}
+const statuses = driverStatuses;
 
-const rows = ref<DriverRow[]>([]);
-const statuses = ref<DriverRow["status"][]>(["Active", "Inactive"]);
-
-// Sorting
-const sort = reactive<{ key: keyof DriverRow | ""; dir: "asc" | "desc" }>({ key: "", dir: "asc" });
-function toggleSort(key: keyof DriverRow) {
+/* ====== Sorting ====== */
+const sort = reactive({ key: "", dir: "asc" }); // key: name | licenseExpDate | dateOfJoining | etc.
+function toggleSort(key) {
     if (sort.key === key) sort.dir = sort.dir === "asc" ? "desc" : "asc";
     else {
         sort.key = key;
@@ -297,20 +292,20 @@ function toggleSort(key: keyof DriverRow) {
     }
 }
 
-// Styling
-const statusPill = (s: string) =>
+/* ====== Styling ====== */
+const statusPill = (s) =>
     `inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
         s === "Active"
             ? "bg-green-50 text-green-700 border-green-200"
             : "bg-neutral-100 text-neutral-600 border-neutral-200"
     }`;
 
-// Search + Sort + Pagination
+/* ====== Search + Sort + Pagination ====== */
 const filteredRows = computed(() => {
     const q = search.value.toLowerCase().trim();
-    const base = [...rows.value];
+    const base = [...drivers.value];
     if (sort.key) {
-        base.sort((a: any, b: any) => {
+        base.sort((a, b) => {
             const A = (a[sort.key] ?? "").toString().toLowerCase();
             const B = (b[sort.key] ?? "").toString().toLowerCase();
             return sort.dir === "asc" ? A.localeCompare(B) : B.localeCompare(A);
@@ -319,7 +314,7 @@ const filteredRows = computed(() => {
     if (!q) return base;
     return base.filter((r) =>
         [r.name, r.mobile, r.licenseNo, r.status, r.address].some((v) =>
-            v?.toLowerCase().includes(q)
+            (v ?? "").toLowerCase().includes(q)
         )
     );
 });
@@ -327,26 +322,26 @@ const pageRows = computed(() =>
     filteredRows.value.slice((page.value - 1) * pageSize, (page.value - 1) * pageSize + pageSize)
 );
 
-// Form
+/* ====== Form ====== */
 const emptyForm = () => ({
     name: "",
     mobile: "",
-    age: undefined as number | undefined,
+    age: undefined,
     licenseNo: "",
     licenseExpDate: "",
     dateOfJoining: "",
     address: "",
-    experience: undefined as number | undefined,
+    experience: undefined,
     notes: "",
-    status: "" as any,
+    status: "",
 });
-const form = reactive<ReturnType<typeof emptyForm>>(emptyForm());
-const errors = reactive<Record<string, string>>({});
-let editingId: number | null = null;
+const form = reactive(emptyForm());
+const errors = reactive({});
+const editingId = ref(null);
 
 function validate() {
     Object.keys(errors).forEach((k) => delete errors[k]);
-    const req: (keyof ReturnType<typeof emptyForm>)[] = [
+    const required = [
         "name",
         "mobile",
         "age",
@@ -357,8 +352,8 @@ function validate() {
         "experience",
         "status",
     ];
-    for (const k of req) {
-        const val = (form as any)[k];
+    for (const k of required) {
+        const val = form[k];
         if (val === "" || val === undefined || val === null) errors[k] = "Required";
     }
     return Object.keys(errors).length === 0;
@@ -366,53 +361,33 @@ function validate() {
 
 function handleSubmit() {
     if (!validate()) return;
-    if (editingId) {
-        const idx = rows.value.findIndex((r) => r.id === editingId);
-        if (idx !== -1) rows.value[idx] = { id: editingId, ...form } as DriverRow;
+    if (editingId.value) {
+        updateDriver(editingId.value, { ...form });
     } else {
-        const id = rows.value.length ? Math.max(...rows.value.map((r) => r.id)) + 1 : 1;
-        rows.value.unshift({ id, ...form } as DriverRow);
+        createDriver({ ...form });
     }
     resetForm();
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function editRow(r: DriverRow) {
+function editRow(r) {
     Object.assign(form, r);
-    editingId = r.id;
+    editingId.value = r.id;
     scrollToForm();
 }
-function toggleStatus(r: DriverRow) {
-    r.status = r.status === "Active" ? "Inactive" : "Active";
+function toggleStatus(r) {
+    toggleDriverStatus(r.id);
 }
-function removeRow(id: number) {
-    rows.value = rows.value.filter((r) => r.id !== id);
+function removeRow(id) {
+    removeDriver(id);
 }
 function resetForm() {
     Object.assign(form, emptyForm());
-    editingId = null;
+    editingId.value = null;
 }
 function scrollToForm() {
     formRef.value?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
-
-onMounted(() => {
-    rows.value = [
-        {
-            id: 1,
-            name: "Andi Saputra",
-            mobile: "08123123123",
-            age: 34,
-            licenseNo: "B-1234-XYZ",
-            licenseExpDate: "2025-09-20",
-            dateOfJoining: "2024-03-15",
-            address: "Bandung",
-            experience: 8,
-            notes: "Night shift",
-            status: "Active",
-        },
-    ];
-});
 </script>
 
 <style scoped>
@@ -441,109 +416,109 @@ onMounted(() => {
     vertical-align: middle;
 }
 
-/* .input => w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-400 transition */
+/* .input */
 .input {
     width: 100%;
     border-radius: 0.75rem;
-    border: 1px solid #e5e7eb; /* neutral-200 */
+    border: 1px solid #e5e7eb;
     background-color: #ffffff;
     padding: 0.5rem 0.75rem;
-    font-size: 0.875rem; /* text-sm */
+    font-size: 0.875rem;
     line-height: 1.25rem;
     outline: none;
     transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease,
         color 0.2s ease;
 }
 .input:focus {
-    border-color: #a3a3a3; /* neutral-400 */
-    box-shadow: 0 0 0 2px rgba(23, 23, 23, 0.1); /* ring-neutral-900/10 */
+    border-color: #a3a3a3;
+    box-shadow: 0 0 0 2px rgba(23, 23, 23, 0.1);
 }
 
-/* .btn-primary => inline-flex items-center justify-center rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-neutral-800 disabled:opacity-50 */
+/* .btn-primary */
 .btn-primary {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 0.75rem;
-    background-color: #171717; /* neutral-900 */
-    padding: 0.5rem 1rem; /* py-2 px-4 */
-    font-size: 0.875rem; /* text-sm */
+    background-color: #171717;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
     line-height: 1.25rem;
-    font-weight: 500; /* font-medium */
+    font-weight: 500;
     color: #ffffff;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 .btn-primary:hover {
     background-color: #262626;
-} /* neutral-800 */
+}
 .btn-primary:disabled {
     opacity: 0.5;
     pointer-events: none;
 }
 
-/* .btn-subtle => inline-flex items-center justify-center rounded-xl border px-3 py-1.5 text-xs font-medium hover:bg-neutral-50 disabled:opacity-50 */
+/* .btn-subtle */
 .btn-subtle {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 0.75rem;
-    border: 1px solid #e5e7eb; /* neutral-200 */
-    padding: 0.375rem 0.75rem; /* py-1.5 px-3 */
-    font-size: 0.75rem; /* text-xs */
+    border: 1px solid #e5e7eb;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
     line-height: 1rem;
-    font-weight: 500; /* font-medium */
+    font-weight: 500;
     background-color: transparent;
     transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 .btn-subtle:hover {
     background-color: #fafafa;
-} /* neutral-50 */
+}
 .btn-subtle:disabled {
     opacity: 0.5;
     pointer-events: none;
 }
 
-/* .btn-danger => inline-flex items-center justify-center rounded-xl border border-red-200 text-red-600 px-3 py-1.5 text-xs font-medium hover:bg-red-50 */
+/* .btn-danger */
 .btn-danger {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 0.75rem;
-    border: 1px solid #fecaca; /* red-200 */
-    color: #dc2626; /* red-600 */
+    border: 1px solid #fecaca;
+    color: #dc2626;
     background-color: transparent;
-    padding: 0.375rem 0.75rem; /* py-1.5 px-3 */
-    font-size: 0.75rem; /* text-xs */
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
     line-height: 1rem;
     font-weight: 500;
     transition: background-color 0.15s ease;
 }
 .btn-danger:hover {
     background-color: #fef2f2;
-} /* red-50 */
+}
 
-/* .lbl => block text-sm text-neutral-700 mb-1 */
+/* .lbl */
 .lbl {
     display: block;
-    font-size: 0.875rem; /* text-sm */
+    font-size: 0.875rem;
     line-height: 1.25rem;
-    color: #404040; /* neutral-700 */
-    margin-bottom: 0.25rem; /* mb-1 */
+    color: #404040;
+    margin-bottom: 0.25rem;
 }
 
-/* .req => text-xs text-red-600 mt-1 */
+/* .req */
 .req {
-    font-size: 0.75rem; /* text-xs */
+    font-size: 0.75rem;
     line-height: 1rem;
-    color: #dc2626; /* red-600 */
-    margin-top: 0.25rem; /* mt-1 */
+    color: #dc2626;
+    margin-top: 0.25rem;
 }
 
-/* .sort => text-[10px] text-neutral-400 */
+/* .sort */
 .sort {
     font-size: 10px;
     line-height: 1;
-    color: #a3a3a3; /* neutral-400 */
+    color: #a3a3a3;
 }
 </style>

@@ -186,28 +186,22 @@
     </div>
 </template>
 
-<script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue";
+<script setup>
+import { ref, reactive, computed } from "vue";
 
-const formRef = ref<HTMLElement | null>(null);
+// Nuxt akan auto-import composables "use..." di /composables.
+const { customers, createCustomer, updateCustomer, removeCustomer, toggleCustomerStatus } =
+    useCustomersDb();
+
+/* ====== UI State ====== */
+const formRef = ref(null);
 const search = ref("");
 const pageSize = 10;
 const page = ref(1);
 
-interface Customer {
-    id: number;
-    name: string;
-    mobile: string;
-    email: string;
-    address: string;
-    status: "Active" | "Inactive";
-}
-
-const rows = ref<Customer[]>([]);
-
-// Sorting
-const sort = reactive<{ key: keyof Customer | ""; dir: "asc" | "desc" }>({ key: "", dir: "asc" });
-function toggleSort(key: keyof Customer) {
+/* ====== Sorting ====== */
+const sort = reactive({ key: "", dir: "asc" });
+function toggleSort(key) {
     if (sort.key === key) sort.dir = sort.dir === "asc" ? "desc" : "asc";
     else {
         sort.key = key;
@@ -215,20 +209,20 @@ function toggleSort(key: keyof Customer) {
     }
 }
 
-// Styling
-const statusPill = (s: string) =>
+/* ====== Styling ====== */
+const statusPill = (s) =>
     `inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
         s === "Active"
             ? "bg-green-50 text-green-700 border-green-200"
             : "bg-neutral-100 text-neutral-600 border-neutral-200"
     }`;
 
-// Search + Sort + Pagination
+/* ====== Search + Sort + Pagination ====== */
 const filteredRows = computed(() => {
     const q = search.value.toLowerCase().trim();
-    const base = [...rows.value];
+    const base = [...customers.value];
     if (sort.key) {
-        base.sort((a: any, b: any) => {
+        base.sort((a, b) => {
             const A = (a[sort.key] ?? "").toString().toLowerCase();
             const B = (b[sort.key] ?? "").toString().toLowerCase();
             return sort.dir === "asc" ? A.localeCompare(B) : B.localeCompare(A);
@@ -236,18 +230,20 @@ const filteredRows = computed(() => {
     }
     if (!q) return base;
     return base.filter((r) =>
-        [r.name, r.mobile, r.email, r.address, r.status].some((v) => v?.toLowerCase().includes(q))
+        [r.name, r.mobile, r.email, r.address, r.status].some((v) =>
+            (v ?? "").toLowerCase().includes(q)
+        )
     );
 });
 const pageRows = computed(() =>
     filteredRows.value.slice((page.value - 1) * pageSize, (page.value - 1) * pageSize + pageSize)
 );
 
-// Form
+/* ====== Form ====== */
 const emptyForm = () => ({ name: "", mobile: "", email: "", address: "" });
-const form = reactive<ReturnType<typeof emptyForm>>(emptyForm());
-const errors = reactive<Record<string, string>>({});
-let editingId: number | null = null;
+const form = reactive(emptyForm());
+const errors = reactive({});
+const editingId = ref(null);
 
 function validate() {
     Object.keys(errors).forEach((k) => delete errors[k]);
@@ -260,63 +256,36 @@ function validate() {
 
 function handleSubmit() {
     if (!validate()) return;
-    if (editingId) {
-        const idx = rows.value.findIndex((r) => r.id === editingId);
-        if (idx !== -1)
-            rows.value[idx] = { id: editingId, status: rows.value[idx].status, ...form };
+    if (editingId.value) {
+        updateCustomer(editingId.value, { ...form });
     } else {
-        const id = rows.value.length ? Math.max(...rows.value.map((r) => r.id)) + 1 : 1;
-        rows.value.unshift({ id, status: "Active", ...form });
+        createCustomer({ ...form, status: "Active" });
     }
     resetForm();
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function editRow(r: Customer) {
+function editRow(r) {
     form.name = r.name;
     form.mobile = r.mobile;
     form.email = r.email;
     form.address = r.address;
-    editingId = r.id;
+    editingId.value = r.id;
     scrollToForm();
 }
-
-function toggleStatus(r: Customer) {
-    r.status = r.status === "Active" ? "Inactive" : "Active";
+function toggleStatus(r) {
+    toggleCustomerStatus(r.id);
 }
-
-function removeRow(id: number) {
-    rows.value = rows.value.filter((r) => r.id !== id);
+function removeRow(id) {
+    removeCustomer(id);
 }
-
 function resetForm() {
     Object.assign(form, emptyForm());
-    editingId = null;
+    editingId.value = null;
 }
 function scrollToForm() {
     formRef.value?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
-
-onMounted(() => {
-    rows.value = [
-        {
-            id: 1,
-            name: "Made Rido",
-            mobile: "1231231231",
-            email: "made@gmail.com",
-            address: "Bandung",
-            status: "Active",
-        },
-        {
-            id: 2,
-            name: "PT Nusantara",
-            mobile: "08123456789",
-            email: "hello@nusantara.co.id",
-            address: "Jakarta",
-            status: "Inactive",
-        },
-    ];
-});
 </script>
 
 <style scoped>
@@ -379,14 +348,12 @@ onMounted(() => {
     transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 .btn-primary:hover {
-    /* hover:bg-neutral-800 */
     background-color: #262626;
-}
+} /* hover:bg-neutral-800 */
 .btn-primary:disabled {
-    /* disabled:opacity-50 */
     opacity: 0.5;
     pointer-events: none;
-}
+} /* disabled */
 
 /* .btn-subtle => inline-flex items-center justify-center rounded-xl border px-3 py-1.5 text-xs font-medium hover:bg-neutral-50 disabled:opacity-50 */
 .btn-subtle {
@@ -394,7 +361,7 @@ onMounted(() => {
     align-items: center; /* items-center */
     justify-content: center; /* justify-center */
     border-radius: 0.75rem; /* rounded-xl */
-    border: 1px solid #e5e7eb; /* border (neutral-200) */
+    border: 1px solid #e5e7eb; /* neutral-200 */
     padding: 0.375rem 0.75rem; /* py-1.5 px-3 */
     font-size: 0.75rem; /* text-xs */
     line-height: 1rem;
@@ -403,14 +370,12 @@ onMounted(() => {
     transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 .btn-subtle:hover {
-    /* hover:bg-neutral-50 */
     background-color: #fafafa;
-}
+} /* hover:bg-neutral-50 */
 .btn-subtle:disabled {
-    /* disabled:opacity-50 */
     opacity: 0.5;
     pointer-events: none;
-}
+} /* disabled */
 
 /* .btn-danger => inline-flex items-center justify-center rounded-xl border border-red-200 text-red-600 px-3 py-1.5 text-xs font-medium hover:bg-red-50 */
 .btn-danger {
@@ -428,9 +393,8 @@ onMounted(() => {
     transition: background-color 0.15s ease;
 }
 .btn-danger:hover {
-    /* hover:bg-red-50 */
     background-color: #fef2f2;
-}
+} /* hover:bg-red-50 */
 
 /* .lbl => block text-sm text-neutral-700 mb-1 */
 .lbl {

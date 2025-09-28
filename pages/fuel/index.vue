@@ -1,7 +1,6 @@
-<!-- File: pages/fuel.vue (Nuxt 3) -->
+<!-- File: pages/fuel.vue -->
 <template>
     <div class="min-h-[100dvh] bg-neutral-50 p-4 md:p-6">
-        <!-- Header -->
         <div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
                 <nav class="text-sm text-neutral-500 mb-1">
@@ -24,7 +23,6 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            <!-- Table -->
             <section class="lg:col-span-8 xl:col-span-8 card" aria-label="Fuel list">
                 <div class="flex items-center justify-between p-3 border-b bg-neutral-50/60">
                     <h2 class="font-medium">Records</h2>
@@ -77,7 +75,7 @@
                                 <td class="td">{{ (page - 1) * pageSize + i + 1 }}</td>
                                 <td class="td">{{ row.date }}</td>
                                 <td class="td">{{ row.vehicle }}</td>
-                                <td class="td">{{ row.quantity }} L</td>
+                                <td class="td">{{ row.quantity.toLocaleString() }} L</td>
                                 <td class="td">{{ formatCurrency(row.amount) }}</td>
                                 <td class="td">{{ row.driver }}</td>
                                 <td class="td">{{ row.odometer.toLocaleString() }} km</td>
@@ -97,7 +95,6 @@
                     </table>
                 </div>
 
-                <!-- Pagination -->
                 <div class="flex items-center justify-between px-3 py-2 border-t">
                     <div class="text-xs text-neutral-500">
                         Page {{ page }} of
@@ -118,7 +115,6 @@
                 </div>
             </section>
 
-            <!-- Form -->
             <section
                 ref="formRef"
                 class="lg:col-span-4 xl:col-span-4 card"
@@ -133,28 +129,31 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="lbl">Vehicle<span class="text-red-600">*</span></label>
-                            <select v-model="form.vehicle" class="input">
-                                <option value="" disabled>Select Vehicle</option>
-                                <option v-for="v in vehicles" :key="v" :value="v">{{ v }}</option>
+                            <select v-model.number="form.vehicleId" class="input">
+                                <option :value="0" disabled>Select Vehicle</option>
+                                <option v-for="v in vehiclesOpts" :key="v.id" :value="v.id">
+                                    {{ v.name }}
+                                </option>
                             </select>
-                            <p v-if="errors.vehicle" class="req">{{ errors.vehicle }}</p>
+                            <p v-if="errors.vehicleId" class="req">{{ errors.vehicleId }}</p>
                         </div>
 
                         <div>
                             <label class="lbl"
                                 >Added Driver<span class="text-red-600">*</span></label
                             >
-                            <select v-model="form.driver" class="input">
+                            <select v-model="form.driverName" class="input">
                                 <option value="" disabled>Select Driver</option>
-                                <option v-for="d in drivers" :key="d" :value="d">{{ d }}</option>
+                                <option v-for="d in driversOpts" :key="d" :value="d">
+                                    {{ d }}
+                                </option>
                             </select>
-                            <p v-if="errors.driver" class="req">{{ errors.driver }}</p>
+                            <p v-if="errors.driverName" class="req">{{ errors.driverName }}</p>
                         </div>
 
                         <div>
-                            <label class="lbl">Fill Date<span class="text-red-600">*</span></label>
+                            <label class="lbl">Fill Date</label>
                             <input v-model="form.date" type="date" class="input" />
-                            <p v-if="errors.date" class="req">{{ errors.date }}</p>
                         </div>
 
                         <div>
@@ -173,9 +172,7 @@
                         </div>
 
                         <div>
-                            <label class="lbl"
-                                >Odometer Reading<span class="text-red-600">*</span></label
-                            >
+                            <label class="lbl">Odometer Reading</label>
                             <input
                                 v-model.number="form.odometer"
                                 type="number"
@@ -184,13 +181,10 @@
                                 class="input"
                                 placeholder="Odometer Reading"
                             />
-                            <p v-if="errors.odometer" class="req">{{ errors.odometer }}</p>
                         </div>
 
                         <div>
-                            <label class="lbl"
-                                >Amount (total price)<span class="text-red-600">*</span></label
-                            >
+                            <label class="lbl">Amount (total price)</label>
                             <input
                                 v-model.number="form.amount"
                                 type="number"
@@ -199,7 +193,6 @@
                                 class="input"
                                 placeholder="Amount"
                             />
-                            <p v-if="errors.amount" class="req">{{ errors.amount }}</p>
                         </div>
 
                         <div class="sm:col-span-2">
@@ -230,33 +223,65 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed } from "vue";
+
+const {
+    vehicles,
+    drivers,
+    fuelRows,
+    fuelLogs,
+    createFuelLog,
+    updateFuelLog,
+    removeFuelLog,
+    DEFAULT_PRICE_PER_L,
+    getCurrentOdo,
+    createOdoReading,
+} = useFleetDb();
 
 const formRef = ref<HTMLElement | null>(null);
 const search = ref("");
 const pageSize = 10;
 const page = ref(1);
 
-interface FuelRow {
+type TableRow = {
     id: number;
+    vehicleId: number | null;
     date: string;
     vehicle: string;
-    quantity: number; // liters
-    amount: number; // total price
+    quantity: number;
+    amount: number;
     driver: string;
     odometer: number;
     comments: string;
-    addToExpense?: boolean;
-}
+};
 
-const rows = ref<FuelRow[]>([]);
+const vehiclesOpts = computed(() => vehicles.value.map((v: any) => ({ id: v.id, name: v.name })));
+const driversOpts = computed(() => drivers.value.map((d: any) => d.name));
+const vehicleNameById = computed(() => {
+    const m = new Map<number, string>();
+    vehicles.value.forEach((v: any) => m.set(v.id, v.name));
+    return m;
+});
 
-const vehicles = ref(["Truck A", "Truck B", "Truck C"]);
-const drivers = ref(["Budi", "Andi", "Susi", "Rina"]);
+const tableRows = computed<TableRow[]>(() =>
+    fuelRows.value.map((r: any) => {
+        const odo = r.vehicleId ? getCurrentOdo(r.vehicleId) : null;
+        return {
+            id: r.id,
+            vehicleId: r.vehicleId ?? null,
+            date: "-",
+            vehicle: r.name ?? "-",
+            quantity: Number(r.tripFuel || 0),
+            amount: Number(r.price || 0),
+            driver: r.driver ?? "-",
+            odometer: Number(odo?.readingKm ?? 0),
+            comments: "",
+        };
+    })
+);
 
-// Sorting
-const sort = reactive<{ key: keyof FuelRow | ""; dir: "asc" | "desc" }>({ key: "", dir: "asc" });
-function toggleSort(key: keyof FuelRow) {
+const sort = reactive<{ key: keyof TableRow | ""; dir: "asc" | "desc" }>({ key: "", dir: "asc" });
+function toggleSort(key: keyof TableRow) {
     if (sort.key === key) sort.dir = sort.dir === "asc" ? "desc" : "asc";
     else {
         sort.key = key;
@@ -264,14 +289,18 @@ function toggleSort(key: keyof FuelRow) {
     }
 }
 
-// Search + Sort + Pagination
 const filteredRows = computed(() => {
     const q = search.value.toLowerCase().trim();
-    const base = [...rows.value];
+    const base = [...tableRows.value];
     if (sort.key) {
         base.sort((a: any, b: any) => {
             const A = (a[sort.key] ?? "").toString().toLowerCase();
             const B = (b[sort.key] ?? "").toString().toLowerCase();
+            if (typeof a[sort.key] === "number" && typeof b[sort.key] === "number") {
+                return sort.dir === "asc"
+                    ? (a[sort.key] as number) - (b[sort.key] as number)
+                    : (b[sort.key] as number) - (a[sort.key] as number);
+            }
             return sort.dir === "asc" ? A.localeCompare(B) : B.localeCompare(A);
         });
     }
@@ -284,16 +313,15 @@ const pageRows = computed(() =>
     filteredRows.value.slice((page.value - 1) * pageSize, (page.value - 1) * pageSize + pageSize)
 );
 
-// Form
 const emptyForm = () => ({
-    date: "",
-    vehicle: "",
+    vehicleId: 0 as number,
+    driverName: "" as string,
+    date: "" as string,
     quantity: undefined as number | undefined,
     amount: undefined as number | undefined,
-    driver: "",
     odometer: undefined as number | undefined,
-    comments: "",
-    addToExpense: false,
+    comments: "" as string,
+    addToExpense: false as boolean,
 });
 const form = reactive<ReturnType<typeof emptyForm>>(emptyForm());
 const errors = reactive<Record<string, string>>({});
@@ -301,48 +329,78 @@ let editingId: number | null = null;
 
 function validate() {
     Object.keys(errors).forEach((k) => delete errors[k]);
-    const req: (keyof ReturnType<typeof emptyForm>)[] = [
-        "date",
-        "vehicle",
-        "quantity",
-        "amount",
-        "driver",
-        "odometer",
-    ];
-    for (const k of req) {
-        const val = (form as any)[k];
-        if (val === "" || val === undefined || val === null) errors[k] = "Required";
-    }
+    if (!form.vehicleId) errors.vehicleId = "Required";
+    if (!form.driverName) errors.driverName = "Required";
+    if (form.quantity == null || isNaN(form.quantity as number)) errors.quantity = "Required";
     return Object.keys(errors).length === 0;
+}
+
+function pricePerLFromForm() {
+    const qty = Number(form.quantity || 0);
+    const amt = Number(form.amount || 0);
+    if (qty > 0 && amt > 0) return amt / qty;
+    return DEFAULT_PRICE_PER_L;
 }
 
 function handleSubmit() {
     if (!validate()) return;
-    if (editingId) {
-        const idx = rows.value.findIndex((r) => r.id === editingId);
-        if (idx !== -1) rows.value[idx] = { id: editingId, ...form } as FuelRow;
+
+    const qty = Number(form.quantity || 0);
+    const unitPrice = pricePerLFromForm();
+
+    // cari log fuel existing per vehicle, lalu tambahkan
+    const existing = fuelLogs.value.find((x: any) => x.vehicleId === form.vehicleId);
+    if (existing) {
+        const newQty = Number(existing.tripFuel || 0) + qty;
+        const patch: any = { tripFuel: newQty };
+        if (unitPrice) patch.pricePerL = unitPrice;
+        updateFuelLog(existing.id, patch);
+        editingId = existing.id;
     } else {
-        const id = rows.value.length ? Math.max(...rows.value.map((r) => r.id)) + 1 : 1;
-        rows.value.unshift({ id, ...form } as FuelRow);
+        createFuelLog({
+            vehicleId: form.vehicleId,
+            driverName: form.driverName || undefined,
+            tripFuel: qty,
+            pricePerL: unitPrice || DEFAULT_PRICE_PER_L,
+        });
     }
+
+    // catat ODO (hindari error TS dengan memakai vehicleName dan cast)
+    const vName = vehicleNameById.value.get(form.vehicleId);
+    if (vName && form.odometer != null && !isNaN(form.odometer as number)) {
+        (createOdoReading as unknown as (p: any) => any)({
+            vehicleName: vName,
+            driverName: form.driverName,
+            readingKm: Number(form.odometer || 0),
+        });
+    }
+
     resetForm();
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function editRow(r: FuelRow) {
-    Object.assign(form, r);
+function editRow(r: TableRow) {
+    form.vehicleId = r.vehicleId || 0;
+    form.driverName = r.driver || "";
+    form.date = r.date && r.date !== "-" ? r.date : "";
+    form.quantity = r.quantity;
+    form.amount = r.amount;
+    form.odometer = r.odometer || undefined;
+    form.comments = r.comments || "";
+    form.addToExpense = false;
     editingId = r.id;
     scrollToForm();
 }
 
 function removeRow(id: number) {
-    rows.value = rows.value.filter((r) => r.id !== id);
+    removeFuelLog(id);
 }
 
 function resetForm() {
     Object.assign(form, emptyForm());
     editingId = null;
 }
+
 function scrollToForm() {
     formRef.value?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -350,168 +408,118 @@ function scrollToForm() {
 function formatCurrency(n: number) {
     return (n ?? 0).toLocaleString("id-ID", { style: "currency", currency: "IDR" });
 }
-
-onMounted(() => {
-    rows.value = [
-        {
-            id: 1,
-            date: "2025-09-20",
-            vehicle: "Truck A",
-            quantity: 50,
-            amount: 600000,
-            driver: "Budi",
-            odometer: 123450,
-            comments: "SPBU 34.123",
-            addToExpense: true,
-        },
-        {
-            id: 2,
-            date: "2025-09-21",
-            vehicle: "Truck B",
-            quantity: 40,
-            amount: 480000,
-            driver: "Susi",
-            odometer: 88990,
-            comments: "Non-subsidi",
-            addToExpense: false,
-        },
-    ];
-});
 </script>
 
 <style scoped>
-/* .card => rounded-2xl border bg-white shadow-sm overflow-hidden */
 .card {
     border-radius: 1rem;
-    border: 1px solid #e5e7eb; /* neutral-200 */
+    border: 1px solid #e5e7eb;
     background-color: #ffffff;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     overflow: hidden;
 }
-
-/* .th => py-3 px-4 text-xs font-semibold text-neutral-700 whitespace-nowrap */
 .th {
-    padding: 0.75rem 1rem; /* py-3 px-4 */
-    font-size: 0.75rem; /* text-xs */
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
     line-height: 1rem;
-    font-weight: 600; /* font-semibold */
-    color: #404040; /* neutral-700 */
+    font-weight: 600;
+    color: #404040;
     white-space: nowrap;
 }
-
-/* .td => py-3 px-4 align-middle */
 .td {
-    padding: 0.75rem 1rem; /* py-3 px-4 */
-    vertical-align: middle; /* align-middle */
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
 }
-
-/* .input => w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-400 transition */
 .input {
-    width: 100%; /* w-full */
-    border-radius: 0.75rem; /* rounded-xl */
-    border: 1px solid #e5e7eb; /* neutral-200 */
-    background-color: #ffffff; /* bg-white */
-    padding: 0.5rem 0.75rem; /* py-2 px-3 */
-    font-size: 0.875rem; /* text-sm */
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    background-color: #ffffff;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
     line-height: 1.25rem;
-    outline: none; /* outline-none */
+    outline: none;
     transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease,
-        color 0.2s ease; /* transition */
+        color 0.2s ease;
 }
 .input:focus {
-    border-color: #a3a3a3; /* focus:border-neutral-400 */
-    box-shadow: 0 0 0 2px rgba(23, 23, 23, 0.1); /* focus:ring-2 focus:ring-neutral-900/10 */
+    border-color: #a3a3a3;
+    box-shadow: 0 0 0 2px rgba(23, 23, 23, 0.1);
 }
-
-/* .btn-primary => inline-flex items-center justify-center rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-neutral-800 disabled:opacity-50 */
 .btn-primary {
-    display: inline-flex; /* inline-flex */
-    align-items: center; /* items-center */
-    justify-content: center; /* justify-center */
-    border-radius: 0.75rem; /* rounded-xl */
-    background-color: #171717; /* neutral-900 */
-    padding: 0.5rem 1rem; /* py-2 px-4 */
-    font-size: 0.875rem; /* text-sm */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    background-color: #171717;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
     line-height: 1.25rem;
-    font-weight: 500; /* font-medium */
-    color: #ffffff; /* text-white */
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+    font-weight: 500;
+    color: #fff;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 .btn-primary:hover {
-    /* hover:bg-neutral-800 */
     background-color: #262626;
 }
 .btn-primary:disabled {
-    /* disabled:opacity-50 */
     opacity: 0.5;
     pointer-events: none;
 }
-
-/* .btn-subtle => inline-flex items-center justify-center rounded-xl border px-3 py-1.5 text-xs font-medium hover:bg-neutral-50 disabled:opacity-50 */
 .btn-subtle {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 0.75rem;
-    border: 1px solid #e5e7eb; /* neutral-200 */
-    padding: 0.375rem 0.75rem; /* py-1.5 px-3 */
-    font-size: 0.75rem; /* text-xs */
+    border: 1px solid #e5e7eb;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
     line-height: 1rem;
-    font-weight: 500; /* font-medium */
-    background-color: transparent;
+    font-weight: 500;
+    background: transparent;
     transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 .btn-subtle:hover {
-    /* hover:bg-neutral-50 */
     background-color: #fafafa;
 }
 .btn-subtle:disabled {
     opacity: 0.5;
     pointer-events: none;
 }
-
-/* .btn-danger => inline-flex items-center justify-center rounded-xl border border-red-200 text-red-600 px-3 py-1.5 text-xs font-medium hover:bg-red-50 */
 .btn-danger {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 0.75rem;
-    border: 1px solid #fecaca; /* red-200 */
-    color: #dc2626; /* red-600 */
-    background-color: transparent;
-    padding: 0.375rem 0.75rem; /* py-1.5 px-3 */
-    font-size: 0.75rem; /* text-xs */
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    background: transparent;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
     line-height: 1rem;
     font-weight: 500;
     transition: background-color 0.15s ease;
 }
 .btn-danger:hover {
-    /* hover:bg-red-50 */
     background-color: #fef2f2;
 }
-
-/* .lbl => block text-sm text-neutral-700 mb-1 */
 .lbl {
     display: block;
-    font-size: 0.875rem; /* text-sm */
+    font-size: 0.875rem;
     line-height: 1.25rem;
-    color: #404040; /* neutral-700 */
-    margin-bottom: 0.25rem; /* mb-1 */
+    color: #404040;
+    margin-bottom: 0.25rem;
 }
-
-/* .req => text-xs text-red-600 mt-1 */
 .req {
-    font-size: 0.75rem; /* text-xs */
+    font-size: 0.75rem;
     line-height: 1rem;
-    color: #dc2626; /* red-600 */
-    margin-top: 0.25rem; /* mt-1 */
+    color: #dc2626;
+    margin-top: 0.25rem;
 }
-
-/* .sort => text-[10px] text-neutral-400 */
 .sort {
     font-size: 10px;
     line-height: 1;
-    color: #a3a3a3; /* neutral-400 */
+    color: #a3a3a3;
 }
 </style>

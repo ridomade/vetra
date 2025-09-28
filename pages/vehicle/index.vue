@@ -330,33 +330,34 @@
                             <th class="th w-16">S.No</th>
                             <th class="th">
                                 <button class="th-btn" @click="setSort('name')">
-                                    Vehicle Name <span class="sort">{{ sortIcon("name") }}</span>
+                                    Vehicle Name <span class="sort">{{ vehSortIcon("name") }}</span>
                                 </button>
                             </th>
                             <th class="th">
                                 <button class="th-btn" @click="setSort('regNo')">
                                     Registration Number
-                                    <span class="sort">{{ sortIcon("regNo") }}</span>
+                                    <span class="sort">{{ vehSortIcon("regNo") }}</span>
                                 </button>
                             </th>
                             <th class="th">
                                 <button class="th-btn" @click="setSort('model')">
-                                    Model <span class="sort">{{ sortIcon("model") }}</span>
+                                    Model <span class="sort">{{ vehSortIcon("model") }}</span>
                                 </button>
                             </th>
                             <th class="th">
                                 <button class="th-btn" @click="setSort('chassisNo')">
-                                    Chassis No <span class="sort">{{ sortIcon("chassisNo") }}</span>
+                                    Chassis No
+                                    <span class="sort">{{ vehSortIcon("chassisNo") }}</span>
                                 </button>
                             </th>
                             <th class="th">
                                 <button class="th-btn" @click="setSort('group')">
-                                    Group <span class="sort">{{ sortIcon("group") }}</span>
+                                    Group <span class="sort">{{ vehSortIcon("group") }}</span>
                                 </button>
                             </th>
                             <th class="th w-28">
                                 <button class="th-btn" @click="setSort('active')">
-                                    Status <span class="sort">{{ sortIcon("active") }}</span>
+                                    Status <span class="sort">{{ vehSortIcon("active") }}</span>
                                 </button>
                             </th>
                             <th class="th w-32">Action</th>
@@ -626,14 +627,14 @@
                             <th class="th w-16">S.No</th>
                             <th class="th">
                                 <button class="th-btn" @click="setSortG('name')">
-                                    Name <span class="sort">{{ sortIconG("name") }}</span>
+                                    Name <span class="sort">{{ grpSortIcon("name") }}</span>
                                 </button>
                             </th>
                             <th class="th">Description</th>
                             <th class="th w-56">
                                 <button class="th-btn" @click="setSortG('createdAt')">
                                     Created Date
-                                    <span class="sort">{{ sortIconG("createdAt") }}</span>
+                                    <span class="sort">{{ grpSortIcon("createdAt") }}</span>
                                 </button>
                             </th>
                             <th class="th w-28">Action</th>
@@ -745,6 +746,19 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 
+/* ========= ambil dummy DB global ========= */
+const {
+    vehicles,
+    groups,
+    createVehicle,
+    updateVehicle,
+    removeVehicle,
+    toggleVehicleActive,
+    createGroup,
+    updateGroup,
+    removeGroup,
+} = useFleetDb();
+
 /* ========= VEHICLE MODAL ========= */
 const openVeh = ref(false);
 const vehIsEdit = ref(false);
@@ -823,29 +837,15 @@ function startVehEdit(v) {
 function closeVehModal() {
     openVeh.value = false;
 }
-
 function saveVehicle() {
     if (!canSaveVeh.value) return;
-
     if (vehIsEdit.value && vehEditingId.value != null) {
-        const idx = vehicles.value.findIndex((x) => x.id === vehEditingId.value);
-        if (idx !== -1) {
-            vehicles.value[idx] = {
-                ...vehicles.value[idx],
-                ...vehForm.value,
-            };
-        }
+        updateVehicle(vehEditingId.value, { ...vehForm.value });
     } else {
-        const newId = (vehicles.value.at(-1)?.id || 0) + 1;
-        vehicles.value.push({
-            id: newId,
-            active: true,
-            ...vehForm.value,
-        });
+        createVehicle({ ...vehForm.value });
     }
     closeVehModal();
 }
-
 function randomColor() {
     const n = Math.floor(Math.random() * 0xffffff);
     vehForm.value.color = `#${n.toString(16).padStart(6, "0").toUpperCase()}`;
@@ -886,18 +886,12 @@ function formatNow() {
 function onSubmit() {
     if (!form.value.name.trim()) return;
     if (isEdit.value && editingId.value != null) {
-        const idx = groups.value.findIndex((x) => x.id === editingId.value);
-        if (idx !== -1) {
-            groups.value[idx] = {
-                ...groups.value[idx],
-                name: form.value.name.trim(),
-                desc: form.value.description.trim(),
-            };
-        }
+        updateGroup(editingId.value, {
+            name: form.value.name.trim(),
+            desc: form.value.description.trim(),
+        });
     } else {
-        const newId = (groups.value.at(-1)?.id || 0) + 1;
-        groups.value.push({
-            id: newId,
+        createGroup({
             name: form.value.name.trim(),
             desc: form.value.description.trim(),
             createdAt: formatNow(),
@@ -914,119 +908,7 @@ watch(anyModalOpen, (v) => (v ? lockScroll() : unlockScroll()));
 onMounted(() => unlockScroll());
 onBeforeUnmount(unlockScroll);
 
-/* ========= DUMMY VEHICLES ========= */
-const vehicles = ref([
-    {
-        id: 1,
-        name: "Dump Truck A",
-        regNo: "BDG-1234",
-        model: "DTX-320",
-        chassisNo: "CH-0001",
-        group: "Dump Truck",
-        active: true,
-    },
-    {
-        id: 2,
-        name: "Excavator B",
-        regNo: "JKT-2210",
-        model: "EX-200",
-        chassisNo: "CH-0002",
-        group: "Excavator",
-        active: true,
-    },
-    {
-        id: 3,
-        name: "Pickup C",
-        regNo: "BDO-7788",
-        model: "PU-150",
-        chassisNo: "CH-0003",
-        group: "Pickup",
-        active: false,
-    },
-    {
-        id: 4,
-        name: "Dozer D",
-        regNo: "DPS-9981",
-        model: "DZ-400",
-        chassisNo: "CH-0004",
-        group: "Dozer",
-        active: true,
-    },
-    {
-        id: 5,
-        name: "Dump Truck E",
-        regNo: "SBY-4567",
-        model: "DTX-330",
-        chassisNo: "CH-0005",
-        group: "Dump Truck",
-        active: true,
-    },
-    {
-        id: 6,
-        name: "Excavator F",
-        regNo: "MDN-3011",
-        model: "EX-210",
-        chassisNo: "CH-0006",
-        group: "Excavator",
-        active: false,
-    },
-    {
-        id: 7,
-        name: "Pickup G",
-        regNo: "SMG-9910",
-        model: "PU-160",
-        chassisNo: "CH-0007",
-        group: "Pickup",
-        active: true,
-    },
-    {
-        id: 8,
-        name: "Dozer H",
-        regNo: "PLG-4411",
-        model: "DZ-420",
-        chassisNo: "CH-0008",
-        group: "Dozer",
-        active: false,
-    },
-    {
-        id: 9,
-        name: "Dump Truck I",
-        regNo: "BTM-1122",
-        model: "DTX-340",
-        chassisNo: "CH-0009",
-        group: "Dump Truck",
-        active: true,
-    },
-    {
-        id: 10,
-        name: "Excavator J",
-        regNo: "UPG-7654",
-        model: "EX-215",
-        chassisNo: "CH-0010",
-        group: "Excavator",
-        active: true,
-    },
-    {
-        id: 11,
-        name: "Pickup K",
-        regNo: "PKU-1239",
-        model: "PU-170",
-        chassisNo: "CH-0011",
-        group: "Pickup",
-        active: true,
-    },
-    {
-        id: 12,
-        name: "Dozer L",
-        regNo: "JBR-5521",
-        model: "DZ-450",
-        chassisNo: "CH-0012",
-        group: "Dozer",
-        active: false,
-    },
-]);
-
-/* VEHICLE controls */
+/* ========= VEHICLE controls ========= */
 const q = ref("");
 const statusFilter = ref("all"); // all | active | inactive
 const sortBy = ref("name");
@@ -1081,38 +963,11 @@ function setSort(key) {
         sortDir.value = key === "active" ? "desc" : "asc";
     }
 }
-const sortIcon = (key) => (sortBy.value !== key ? "" : sortDir.value === "asc" ? "▲" : "▼");
-
-function viewVehicle(v) {
-    alert(`View: ${v.name} (${v.regNo})`);
-}
-function deleteVehicle(v) {
-    if (confirm(`Delete "${v.name}"?`))
-        vehicles.value = vehicles.value.filter((x) => x.id !== v.id);
-}
-function toggleActive(v) {
-    v.active = !v.active;
+function vehSortIcon(key) {
+    return sortBy.value !== key ? "" : sortDir.value === "asc" ? "▲" : "▼";
 }
 
-/* ========= DUMMY GROUPS ========= */
-const groups = ref([
-    {
-        id: 1,
-        name: "Dump Truck",
-        desc: "Unit untuk hauling material.",
-        createdAt: "2022-07-20 03:48:25",
-    },
-    { id: 2, name: "Excavator", desc: "Penggalian & loading.", createdAt: "2023-03-10 10:12:01" },
-    {
-        id: 3,
-        name: "Pickup",
-        desc: "Distribusi ringan area site.",
-        createdAt: "2024-01-05 14:22:19",
-    },
-    { id: 4, name: "Dozer", desc: "Land clearing & leveling.", createdAt: "2025-09-21 07:06:04" },
-]);
-
-/* GROUP controls */
+/* ========= GROUP controls ========= */
 const qG = ref("");
 const sortByG = ref("name"); // name | createdAt
 const sortDirG = ref("asc");
@@ -1145,25 +1000,32 @@ const endRowG = computed(() => Math.min(pageG.value * perPageG.value, filteredG.
 
 /* GROUP actions */
 function setSortG(key) {
-    sortByG.value === key
-        ? (sortDirG.value = sortDirG.value === "asc" ? "desc" : "asc")
-        : ((sortByG.value = key), (sortDirG.value = "asc"));
-}
-const sortIconG = (key) => (sortByG.value !== key ? "" : sortDirG.value === "asc" ? "▲" : "▼");
-function deleteGroup(g) {
-    if (confirm(`Delete group "${g.name}"?`)) {
-        groups.value = groups.value.filter((x) => x.id !== g.id);
-        if (paginatedG.value.length === 0 && pageG.value > 1) pageG.value--;
+    if (sortByG.value === key) sortDirG.value = sortDirG.value === "asc" ? "desc" : "asc";
+    else {
+        sortByG.value = key;
+        sortDirG.value = "asc";
     }
+}
+function grpSortIcon(key) {
+    return sortByG.value !== key ? "" : sortDirG.value === "asc" ? "▲" : "▼";
+}
+
+function viewVehicle(v) {
+    alert(`View: ${v.name} (${v.regNo})`);
+}
+function deleteVehicle(v) {
+    if (confirm(`Delete "${v.name}"?`)) removeVehicle(v.id);
+}
+function toggleActive(v) {
+    toggleVehicleActive(v.id);
 }
 </script>
 
 <style scoped>
-/* Minimal CSS; sisanya Tailwind */
 .card {
     border-radius: 1rem;
     border: 1px solid #e5e7eb;
-    background-color: #ffffff;
+    background-color: #fff;
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     overflow: hidden;
 }
@@ -1171,7 +1033,7 @@ function deleteGroup(g) {
     padding: 0.75rem 1rem;
     font-size: 0.75rem;
     font-weight: 600;
-    color: rgb(64 64 64);
+    color: #404040;
     white-space: nowrap;
 }
 .th-btn {
@@ -1182,38 +1044,36 @@ function deleteGroup(g) {
     transition: color 0.2s;
 }
 .th-btn:hover {
-    color: rgb(23 23 23);
+    color: #171717;
 }
 .sort {
     font-size: 0.625rem;
-    color: rgb(163 163 163);
+    color: #a3a3a3;
 }
 .td {
     padding: 0.75rem 1rem;
     vertical-align: middle;
 }
-
 .input {
     width: 100%;
     border-radius: 0.75rem;
     border: 1px solid #e5e7eb;
-    background-color: #ffffff;
+    background: #fff;
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
-    outline: none;
+    outline: 0;
     transition: all 0.2s;
 }
 .input:focus {
     border-color: #9ca3af;
     box-shadow: 0 0 0 2px rgb(23 23 23 / 0.1);
 }
-
 .btn-primary {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 0.75rem;
-    background-color: rgb(23 23 23);
+    background: #171717;
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
     font-weight: 500;
@@ -1222,12 +1082,11 @@ function deleteGroup(g) {
     transition: background-color 0.2s;
 }
 .btn-primary:hover {
-    background-color: rgb(38 38 38);
+    background: #262626;
 }
 .btn-primary:disabled {
     opacity: 0.5;
 }
-
 .btn-subtle {
     display: inline-flex;
     align-items: center;
@@ -1240,25 +1099,23 @@ function deleteGroup(g) {
     transition: background-color 0.2s;
 }
 .btn-subtle:hover {
-    background-color: rgb(250 250 250);
+    background: #fafafa;
 }
-
 .btn-danger {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 0.75rem;
-    border: 1px solid rgb(254 202 202);
-    color: rgb(220 38 38);
+    border: 1px solid #fecaca;
+    color: #dc2626;
     padding: 0.375rem 0.75rem;
     font-size: 0.75rem;
     font-weight: 500;
     transition: background-color 0.2s;
 }
 .btn-danger:hover {
-    background-color: rgb(254 242 242);
+    background: #fef2f2;
 }
-
 .icon-btn {
     display: inline-flex;
     align-items: center;
@@ -1269,14 +1126,13 @@ function deleteGroup(g) {
     transition: background-color 0.2s;
 }
 .icon-btn:hover {
-    background-color: rgb(245 245 245);
+    background: #f5f5f5;
 }
 .icon {
     width: 16px;
     height: 16px;
     fill: currentColor;
 }
-
 .fade-enter-active,
 .fade-leave-active {
     transition: opacity 0.15s ease;
@@ -1285,30 +1141,28 @@ function deleteGroup(g) {
 .fade-leave-to {
     opacity: 0;
 }
-
-/* Modal form bits */
 .card-section {
-    border-radius: 0.75rem; /* rounded-xl */
-    border: 1px solid #e5e5e5; /* border (neutral-200-ish) */
-    padding: 1rem; /* p-4 */
-    background-color: rgba(255, 255, 255, 0.7); /* bg-white/70 */
+    border-radius: 0.75rem;
+    border: 1px solid #e5e5e5;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.7);
 }
 .sec-title {
-    margin-bottom: 0.75rem; /* mb-3 */
-    font-weight: 500; /* font-medium */
-    color: #262626; /* text-neutral-800 */
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+    color: #262626;
 }
 .lbl {
-    display: block; /* block */
-    font-size: 0.875rem; /* text-sm */
+    display: block;
+    font-size: 0.875rem;
     line-height: 1.25rem;
-    color: #525252; /* text-neutral-600 */
-    margin-bottom: 0.25rem; /* mb-1 */
+    color: #525252;
+    margin-bottom: 0.25rem;
 }
 .req {
-    font-size: 0.75rem; /* text-xs */
+    font-size: 0.75rem;
     line-height: 1rem;
-    color: #dc2626; /* text-red-600 */
-    margin-top: 0.25rem; /* mt-1 */
+    color: #dc2626;
+    margin-top: 0.25rem;
 }
 </style>
